@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://rps2-backend.onrender.com/api",
+  baseURL: import.meta.env.VITE_API_URL || "https://restopos-backend-fj8n.onrender.com/api",
   timeout: 10000,
 });
 
