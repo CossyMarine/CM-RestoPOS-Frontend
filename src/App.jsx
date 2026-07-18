@@ -27,7 +27,7 @@ function StaffRoute({ user, loading, allow, children }) {
 }
 
 export default function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, refetch } = useAuth();
 
   return (
     <BrowserRouter>
@@ -50,7 +50,7 @@ export default function App() {
             ) : user ? (
               <Navigate to={routeForUser(user)} replace />
             ) : (
-              <LoginPage />
+              <LoginPage onAuthed={refetch} />
             )
           }
         />
