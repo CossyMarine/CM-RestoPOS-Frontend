@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
+import { routeForUser } from "./utils/routeForUser";
 import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
 import WaiterPage from "./pages/WaiterPage";
@@ -8,15 +9,6 @@ import AccountantPage from "./pages/AccountantPage";
 import CustomerPage from "./pages/CustomerPage";
 import OrdersPage from "./pages/OrdersPage";
 import ProfilePage from "./pages/ProfilePage";
-
-function routeForUser(user) {
-  if (!user) return "/login";
-  if (user.isAdmin) return "/admin";
-  if (user.role === "kitchen") return "/kitchen";
-  if (user.role === "waiter") return "/waiter";
-  if (user.role === "accountant") return "/accountant";
-  return "/home";
-}
 
 function LoadingScreen() {
   return (
@@ -48,7 +40,8 @@ export default function App() {
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/profile" element={<ProfilePage />} />
 
-        {/* Staff login — one clean entry point instead of /dashboard mess */}
+        {/* The one and only login/signup entry point — handles admin, waiter,
+            kitchen, accountant, and customer accounts, redirecting each on success. */}
         <Route
           path="/login"
           element={
