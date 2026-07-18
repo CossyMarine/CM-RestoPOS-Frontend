@@ -4,14 +4,15 @@ import LoginForm from "../components/LoginForm";
 import RegisterForm from "../components/RegisterForm";
 import { routeForUser } from "../utils/routeForUser";
 
-export default function LoginPage() {
+export default function LoginPage({ onAuthed }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [tab, setTab] = useState("login"); // "login" | "register"
 
   // Staff (admin/kitchen/waiter/accountant) always land on their dashboard.
   // Customers return to wherever they came from (e.g. /profile), or /home.
-  const handleAuthSuccess = (user) => {
+  const handleAuthSuccess = async (user) => {
+    await onAuthed?.(); // refresh App's shared auth state before navigating
     const isStaff = user.isAdmin || ["kitchen", "waiter", "accountant"].includes(user.role);
     if (isStaff) {
       navigate(routeForUser(user), { replace: true });
