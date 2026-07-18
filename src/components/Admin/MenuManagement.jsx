@@ -94,20 +94,20 @@ export default function MenuManagement() {
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 bg-gray-50 text-gray-800">
             <div>
-                <h2 className="text-2xl font-black text-white">Manage Menu</h2>
-                <p className="text-sm text-gray-500">Add, edit, or remove items from the live menu</p>
+                <h2 className="text-2xl font-black text-gray-800">Manage Menu</h2>
+                <p class="text-sm text-gray-500">Add, edit, or remove items from the live menu</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 h-fit">
-                    <div className="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
-                        <h3 className="text-base font-black text-white">
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 h-fit shadow-sm">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+                        <h3 className="text-base font-black text-gray-800">
                             {editingId ? 'Edit Item' : 'Add Item'}
                         </h3>
                         {editingId && (
-                            <button onClick={cancelEdit} className="text-gray-500 hover:text-white transition-colors">
+                            <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-600 transition-colors">
                                 <X size={18} />
                             </button>
                         )}
@@ -170,7 +170,7 @@ export default function MenuManagement() {
                         <button
                             onClick={saveItem}
                             disabled={saving}
-                            className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 mt-2"
+                            className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm disabled:opacity-50 mt-2"
                         >
                             <Plus size={16} />
                             {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Add to Menu'}
@@ -178,35 +178,35 @@ export default function MenuManagement() {
                     </div>
                 </div>
 
-                <div className="lg:col-span-2 bg-gray-900 border border-gray-700 rounded-2xl p-6">
-                    <h3 className="text-base font-black text-white border-b border-gray-800 pb-3 mb-4">
+                <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                    <h3 className="text-base font-black text-gray-800 border-b border-gray-100 pb-3 mb-4">
                         Live Menu Items ({menu.length})
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[540px] overflow-y-auto pr-1">
                         {menu.length === 0 ? (
-                            <p className="text-gray-600 text-sm col-span-full text-center py-10">
+                            <p className="text-gray-400 text-sm col-span-full text-center py-10 font-medium">
                                 No menu items yet
                             </p>
                         ) : (
                             menu.map((item) => (
                                 <div
                                     key={item._id}
-                                    className="border border-gray-800 rounded-xl p-4 flex justify-between items-center bg-gray-950/40 hover:border-orange-500/40 transition-colors"
+                                    className="border border-gray-200 rounded-xl p-4 flex justify-between items-center bg-gray-50/50 hover:border-orange-500/40 transition-colors"
                                 >
                                     <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-10 h-10 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center shrink-0 overflow-hidden">
+                                        <div className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden">
                                             {item.imageUrl ? (
                                                 <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                                             ) : (
-                                                <UtensilsCrossed size={16} className="text-gray-500" />
+                                                <UtensilsCrossed size={16} className="text-gray-400" />
                                             )}
                                         </div>
                                         <div className="min-w-0">
-                                            <h4 className="font-bold text-white text-sm truncate">{item.name}</h4>
-                                            <p className="text-xs text-orange-400 font-bold mt-0.5">
+                                            <h4 className="font-bold text-gray-800 text-sm truncate">{item.name}</h4>
+                                            <p className="text-xs text-orange-500 font-bold mt-0.5">
                                                 KES {item.price.toLocaleString()}
                                             </p>
-                                            <span className="text-[10px] uppercase font-bold text-gray-500 bg-gray-800 px-2 py-0.5 rounded">
+                                            <span className="text-[10px] uppercase font-bold text-gray-500 bg-gray-200 px-2 py-0.5 rounded">
                                                 {item.category}
                                             </span>
                                         </div>
@@ -214,14 +214,14 @@ export default function MenuManagement() {
                                     <div className="flex flex-col gap-2 shrink-0 ml-2">
                                         <button
                                             onClick={() => startEdit(item)}
-                                            className="text-gray-500 hover:text-orange-400 transition-colors"
+                                            className="text-gray-400 hover:text-orange-500 transition-colors"
                                             title="Edit"
                                         >
                                             <Pencil size={15} />
                                         </button>
                                         <button
                                             onClick={() => setPendingDelete(item)}
-                                            className="text-gray-500 hover:text-red-400 transition-colors"
+                                            className="text-gray-400 hover:text-red-500 transition-colors"
                                             title="Delete"
                                         >
                                             <Trash2 size={15} />
@@ -248,27 +248,33 @@ export default function MenuManagement() {
             <style>{`
                 .input {
                     width: 100%;
-                    background: rgb(17 24 39);
-                    border: 1px solid rgb(55 65 81);
+                    background: rgb(249 250 251);
+                    border: 1px solid rgb(229 231 235);
                     border-radius: 0.75rem;
                     padding: 0.6rem 0.85rem;
                     font-size: 0.875rem;
-                    color: white;
+                    color: rgb(31 41 55);
                 }
                 .input:focus {
                     outline: none;
                     border-color: rgb(249 115 22);
+                    background: white;
+                    box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.1);
+                }
+                .input::placeholder {
+                    color: rgb(156 163 175);
                 }
             `}</style>
         </div>
     );
 }
 
+// Keep field definitions intact
 function Field({ label, children }) {
     return (
         <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">{label}</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-1">{label}</label>
             {children}
         </div>
     );
-              }
+}
