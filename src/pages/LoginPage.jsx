@@ -1,32 +1,22 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import API from "../api/axios";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import LoginForm from "../components/LoginForm";
+import RegisterForm from "../components/RegisterForm";
+import { routeForUser } from "../utils/routeForUser";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showPass, setShowPass] = useState(false);
+  const location = useLocation();
+  const [tab, setTab] = useState("login"); // "login" | "register"
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const res = await API.post("/auth/login", { identifier, password });
-      const { user } = res.data;
-
-      if (user.isAdmin) navigate("/admin");
-      else if (user.role === "kitchen") navigate("/kitchen");
-      else if (user.role === "waiter") navigate("/waiter");
-      else if (user.role === "accountant") navigate("/accountant");
-      else navigate("/home");
-    } catch (err) {
-      setError(err.response?.data?.message || "Invalid email/phone or password");
-    } finally {
-      setLoading(false);
+  // Staff (admin/kitchen/waiter/accountant) always land on their dashboard.
+  // Customers return to wherever they came from (e.g. /profile), or /home.
+  const handleAuthSuccess = (user) => {
+    const isStaff = user.isAdmin || ["kitchen", "waiter", "accountant"].includes(user.role);
+    if (isStaff) {
+      navigate(routeForUser(user), { replace: true });
+    } else {
+      navigate(location.state?.from || "/home", { replace: true });
     }
   };
 
@@ -67,7 +57,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel — form */}
-      <div className="flex-1 flex flex-col justify-center items-center px-6">
+      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12">
         <div className="lg:hidden flex items-center gap-2 mb-10">
           <span className="text-2xl">🍴</span>
           <span className="font-black text-xl text-white">
@@ -77,77 +67,48 @@ export default function LoginPage() {
 
         <div className="w-full max-w-sm">
           <div className="mb-8">
-            <h1 className="text-3xl font-black text-white mb-2">Welcome back</h1>
-            <p className="text-gray-500">Sign in to your staff account</p>
+            <h1 className="text-3xl font-black text-white mb-2">
+              {tab === "login" ? "Welcome back" : "Create your account"}
+            </h1>
+            <p className="text-gray-500">
+              {tab === "login"
+                ? "Sign in — staff and customer accounts both work here"
+                : "Sign up to track your orders"}
+            </p>
           </div>
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl mb-6 flex items-center gap-2">
-              <span>⚠️</span> {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">
-                Email or phone
-              </label>
-              <input
-                type="text"
-                placeholder="you@example.com or 07XX XXX XXX"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                required
-                autoFocus
-                className="w-full bg-gray-900 border border-gray-700 text-white placeholder-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPass ? "text" : "password"}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full bg-gray-900 border border-gray-700 text-white placeholder-gray-600 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
-                />
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="flex border-b border-stone-100">
+              {["login", "register"].map((t) => (
                 <button
+                  key={t}
                   type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-sm transition-colors"
+                  onClick={() => setTab(t)}
+                  className={`flex-1 py-4 text-sm font-bold transition-colors relative ${
+                    tab === t ? "text-orange-500" : "text-stone-400"
+                  }`}
                 >
-                  {showPass ? "Hide" : "Show"}
+                  {t === "login" ? "Log In" : "Sign Up"}
+                  {tab === t && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500" />
+                  )}
                 </button>
-              </div>
+              ))}
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all hover:scale-[1.02] active:scale-100 mt-2"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
-                </span>
+            <div className="p-6">
+              {tab === "login" ? (
+                <LoginForm
+                  onSuccess={handleAuthSuccess}
+                  onSwitchToRegister={() => setTab("register")}
+                />
               ) : (
-                "Sign In →"
+                <RegisterForm onSuccess={handleAuthSuccess} />
               )}
-            </button>
-          </form>
+            </div>
+          </div>
 
           <p className="mt-6 text-center text-sm text-gray-500">
-            Don't have a staff account?{" "}
-            <span className="text-gray-400">Ask your admin to create one for you.</span>
-          </p>
-
-          <p className="mt-2 text-center text-sm text-gray-500">
             Here to order food instead?{" "}
             <Link to="/home" className="text-orange-500 font-semibold hover:text-orange-400">
               Go to the customer menu
@@ -156,7 +117,7 @@ export default function LoginPage() {
 
           <button
             onClick={() => navigate("/home")}
-            className="mt-6 w-full text-center text-gray-600 hover:text-gray-400 text-sm transition-colors"
+            className="mt-4 w-full text-center text-gray-600 hover:text-gray-400 text-sm transition-colors"
           >
             ← Back to home
           </button>
