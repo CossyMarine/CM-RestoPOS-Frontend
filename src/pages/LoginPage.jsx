@@ -4,10 +4,10 @@ import API from "../api/axios";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -15,14 +15,16 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await API.post("/auth/login", { username, password });
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      const { role } = res.data.user;
-      if (role === "waiter") navigate("/waiter");
-      else navigate("/dashboard");
+      const res = await API.post("/auth/login", { identifier, password });
+      const { user } = res.data;
+
+      if (user.isAdmin) navigate("/admin");
+      else if (user.role === "kitchen") navigate("/kitchen");
+      else if (user.role === "waiter") navigate("/waiter");
+      else if (user.role === "accountant") navigate("/accountant");
+      else navigate("/home");
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid username or password");
+      setError(err.response?.data?.message || "Invalid email/phone or password");
     } finally {
       setLoading(false);
     }
@@ -30,7 +32,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 flex">
-
       {/* Left panel — branding */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 bg-gray-900 border-r border-gray-800 p-12">
         <div className="flex items-center gap-2">
@@ -67,8 +68,6 @@ export default function LoginPage() {
 
       {/* Right panel — form */}
       <div className="flex-1 flex flex-col justify-center items-center px-6">
-
-        {/* Mobile logo */}
         <div className="lg:hidden flex items-center gap-2 mb-10">
           <span className="text-2xl">🍴</span>
           <span className="font-black text-xl text-white">
@@ -91,13 +90,13 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">
-                Username
+                Email or phone
               </label>
               <input
                 type="text"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                placeholder="you@example.com or 07XX XXX XXX"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
                 autoFocus
                 className="w-full bg-gray-900 border border-gray-700 text-white placeholder-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
@@ -144,7 +143,7 @@ export default function LoginPage() {
           </form>
 
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/home")}
             className="mt-8 w-full text-center text-gray-600 hover:text-gray-400 text-sm transition-colors"
           >
             ← Back to home
@@ -153,4 +152,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-            }
+}
