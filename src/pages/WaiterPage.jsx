@@ -234,7 +234,7 @@ export default function WaiterDashboard() {
             </div>
 
             {/* Production Matrix Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[60vh] overflow-y-auto pr-1">
               {loading && <p className="text-stone-400 text-sm">Synchronizing production manifest...</p>}
               {!loading && filteredMenu.map((item) => (
                 <button
