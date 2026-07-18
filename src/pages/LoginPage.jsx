@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import API from "../api/axios";
 
 export default function LoginPage() {
@@ -142,9 +142,21 @@ export default function LoginPage() {
             </button>
           </form>
 
+          <p className="mt-6 text-center text-sm text-gray-500">
+            Don't have a staff account?{" "}
+            <span className="text-gray-400">Ask your admin to create one for you.</span>
+          </p>
+
+          <p className="mt-2 text-center text-sm text-gray-500">
+            Here to order food instead?{" "}
+            <Link to="/home" className="text-orange-500 font-semibold hover:text-orange-400">
+              Go to the customer menu
+            </Link>
+          </p>
+
           <button
             onClick={() => navigate("/home")}
-            className="mt-8 w-full text-center text-gray-600 hover:text-gray-400 text-sm transition-colors"
+            className="mt-6 w-full text-center text-gray-600 hover:text-gray-400 text-sm transition-colors"
           >
             ← Back to home
           </button>
