@@ -1,12 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import API from '../api/axios';
+import { useAuth } from '../hooks/useAuth';
 
 // Socket.IO runs on the same server as the API, so this reuses the
 // same env var API.js's baseURL is built from — just without the /api suffix.
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
 export default function KitchenPage() {
+    const navigate = useNavigate();
+    const { user, logout } = useAuth();
+
     const [orders, setOrders] = useState([]);
     const [newOrderIds, setNewOrderIds] = useState(new Set()); // orders not yet acknowledged
     const [soundOn, setSoundOn] = useState(true);
@@ -144,6 +149,11 @@ export default function KitchenPage() {
         return Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000));
     };
 
+    const handleLogout = async () => {
+        await logout();
+        navigate('/login');
+    };
+
     return (
         <div className="min-h-screen bg-gray-950 text-white">
             <nav className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
@@ -173,6 +183,13 @@ export default function KitchenPage() {
                         title="Toggle alarm sound"
                     >
                         {soundOn ? '🔊 Sound On' : '🔇 Sound Off'}
+                    </button>
+                    <span className="text-gray-500 text-sm hidden sm:inline">👤 {user?.fullName}</span>
+                    <button
+                        onClick={handleLogout}
+                        className="text-gray-400 hover:text-white text-sm font-semibold"
+                    >
+                        Sign Out
                     </button>
                 </div>
             </nav>
@@ -260,4 +277,4 @@ export default function KitchenPage() {
             </div>
         </div>
     );
-                                                }
+}
