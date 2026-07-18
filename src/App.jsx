@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { useAuth } from "./hooks/useAuth";
 import { routeForUser } from "./utils/routeForUser";
 import LoginPage from "./pages/LoginPage";
@@ -89,6 +91,8 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
+
+      <ToastContainer position="top-right" theme="light" autoClose={3000} />
     </BrowserRouter>
   );
 }
