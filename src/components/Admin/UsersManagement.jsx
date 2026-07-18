@@ -1,0 +1,345 @@
+import { useState, useEffect } from 'react';
+import { UserPlus, ShieldCheck, Ban, CheckCircle2, RefreshCw } from 'lucide-react';
+import { toast } from 'react-toastify';
+import API from '../../api/axios';
+import ConfirmModal from './ConfirmModal';
+
+const ROLE_OPTIONS = [
+    { value: 'admin', label: 'Admin' },
+    { value: 'kitchen', label: 'Kitchen' },
+    { value: 'waiter', label: 'Waiter' },
+    { value: 'accountant', label: 'Accountant' },
+];
+
+const EMPTY_FORM = {
+    fullName: '',
+    method: 'email',
+    contact: '',
+    password: '',
+    role: 'waiter',
+};
+
+export default function UsersManagement() {
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [form, setForm] = useState(EMPTY_FORM);
+    const [creating, setCreating] = useState(false);
+    const [roleChange, setRoleChange] = useState(null); // { user, newRole }
+    const [statusChange, setStatusChange] = useState(null); // user
+    const [working, setWorking] = useState(false);
+
+    const fetchUsers = async () => {
+        setLoading(true);
+        try {
+            const res = await API.get('/auth/users');
+            setUsers(res.data);
+        } catch (err) {
+            console.error('Failed to fetch users', err);
+            toast.error('Failed to load users');
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    const roleLabel = (u) => (u.isAdmin ? 'Admin' : u.role.charAt(0).toUpperCase() + u.role.slice(1));
+
+    const currentRoleValue = (u) => (u.isAdmin ? 'admin' : u.role);
+
+    const handleCreate = async () => {
+        if (!form.fullName || !form.contact || !form.password) {
+            toast.error('Fill in all fields');
+            return;
+        }
+        if (form.password.length < 6) {
+            toast.error('Password must be at least 6 characters');
+            return;
+        }
+
+        setCreating(true);
+        try {
+            await API.post('/auth/register', {
+                fullName: form.fullName,
+                method: form.method,
+                contact: form.contact,
+                password: form.password,
+                isAdmin: form.role === 'admin',
+                role: form.role === 'admin' ? undefined : form.role,
+            });
+            toast.success('Staff account created');
+            setForm(EMPTY_FORM);
+            fetchUsers();
+        } catch (err) {
+            console.error('Failed to create user', err);
+            toast.error(err.response?.data?.message || 'Failed to create account');
+        }
+        setCreating(false);
+    };
+
+    const confirmRoleChange = async () => {
+        const { user, newRole } = roleChange;
+        setWorking(true);
+        try {
+            const payload =
+                newRole === 'admin' ? { isAdmin: true } : { isAdmin: false, role: newRole };
+            await API.patch(`/auth/users/${user.id}/role`, payload);
+            toast.success(`${user.fullName} is now ${ROLE_OPTIONS.find((r) => r.value === newRole)?.label}`);
+            setRoleChange(null);
+            fetchUsers();
+        } catch (err) {
+            console.error('Failed to update role', err);
+            toast.error(err.response?.data?.message || 'Failed to update role');
+        }
+        setWorking(false);
+    };
+
+    const confirmStatusChange = async () => {
+        setWorking(true);
+        try {
+            await API.patch(`/auth/users/${statusChange.id}/status`);
+            toast.success(statusChange.isActive ? 'Account deactivated' : 'Account reactivated');
+            setStatusChange(null);
+            fetchUsers();
+        } catch (err) {
+            console.error('Failed to update status', err);
+            toast.error(err.response?.data?.message || 'Failed to update status');
+        }
+        setWorking(false);
+    };
+
+    return (
+        <div className="space-y-8">
+            <div className="flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <h2 className="text-2xl font-black text-white">Manage Users</h2>
+                    <p className="text-sm text-gray-500">Promote staff, change roles, and control account access</p>
+                </div>
+                <button
+                    onClick={fetchUsers}
+                    className="flex items-center gap-1.5 bg-gray-900 border border-gray-700 hover:border-orange-500/40 text-gray-400 hover:text-orange-400 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                >
+                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                    Refresh
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Create account form */}
+                <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 h-fit">
+                    <h3 className="text-base font-black text-white border-b border-gray-800 pb-3 mb-4 flex items-center gap-2">
+                        <UserPlus size={16} className="text-orange-500" />
+                        Add Staff Account
+                    </h3>
+
+                    <div className="space-y-4">
+                        <Field label="Full Name">
+                            <input
+                                value={form.fullName}
+                                onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                                placeholder="Jane Doe"
+                                className="input"
+                            />
+                        </Field>
+
+                        <Field label="Contact Method">
+                            <select
+                                value={form.method}
+                                onChange={(e) => setForm({ ...form, method: e.target.value })}
+                                className="input"
+                            >
+                                <option value="email">Email</option>
+                                <option value="phone">Phone</option>
+                            </select>
+                        </Field>
+
+                        <Field label={form.method === 'email' ? 'Email Address' : 'Phone Number'}>
+                            <input
+                                value={form.contact}
+                                onChange={(e) => setForm({ ...form, contact: e.target.value })}
+                                placeholder={form.method === 'email' ? 'jane@resto.com' : '07xxxxxxxx'}
+                                className="input"
+                            />
+                        </Field>
+
+                        <Field label="Password">
+                            <input
+                                type="password"
+                                value={form.password}
+                                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                                placeholder="Min. 6 characters"
+                                className="input"
+                            />
+                        </Field>
+
+                        <Field label="Role">
+                            <select
+                                value={form.role}
+                                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                                className="input"
+                            >
+                                {ROLE_OPTIONS.map((r) => (
+                                    <option key={r.value} value={r.value}>{r.label}</option>
+                                ))}
+                            </select>
+                        </Field>
+
+                        <button
+                            onClick={handleCreate}
+                            disabled={creating}
+                            className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 mt-2"
+                        >
+                            <UserPlus size={16} />
+                            {creating ? 'Creating…' : 'Create Account'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Users table */}
+                <div className="lg:col-span-2 bg-gray-900 border border-gray-700 rounded-2xl p-6">
+                    <h3 className="text-base font-black text-white border-b border-gray-800 pb-3 mb-4">
+                        All Staff & Admin Accounts ({users.length})
+                    </h3>
+                    <div className="overflow-x-auto max-h-[560px] overflow-y-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead>
+                                <tr className="text-gray-500 font-semibold border-b border-gray-800 sticky top-0 bg-gray-900">
+                                    <th className="p-3">Name</th>
+                                    <th className="p-3">Contact</th>
+                                    <th className="p-3">Role</th>
+                                    <th className="p-3">Status</th>
+                                    <th className="p-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-800/70 text-gray-300">
+                                {users.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="p-8 text-center text-gray-600">
+                                            No staff accounts yet
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    users.map((u) => (
+                                        <tr key={u.id} className="hover:bg-gray-800/40 transition-colors">
+                                            <td className="p-3 font-bold text-white">{u.fullName}</td>
+                                            <td className="p-3 text-xs text-gray-400">{u.email || u.phone}</td>
+                                            <td className="p-3">
+                                                <RoleBadge label={roleLabel(u)} isAdmin={u.isAdmin} />
+                                            </td>
+                                            <td className="p-3">
+                                                {u.isActive ? (
+                                                    <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-bold">
+                                                        <CheckCircle2 size={13} /> Active
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-red-400 text-xs font-bold">
+                                                        <Ban size={13} /> Deactivated
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="p-3 text-right">
+                                                <div className="flex items-center justify-end gap-3">
+                                                    <select
+                                                        value={currentRoleValue(u)}
+                                                        onChange={(e) => {
+                                                            const newRole = e.target.value;
+                                                            if (newRole !== currentRoleValue(u)) {
+                                                                setRoleChange({ user: u, newRole });
+                                                            }
+                                                        }}
+                                                        className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-orange-500"
+                                                    >
+                                                        {ROLE_OPTIONS.map((r) => (
+                                                            <option key={r.value} value={r.value}>{r.label}</option>
+                                                        ))}
+                                                    </select>
+                                                    <button
+                                                        onClick={() => setStatusChange(u)}
+                                                        className={`text-xs font-bold transition-colors ${u.isActive ? 'text-red-400 hover:text-red-300' : 'text-emerald-400 hover:text-emerald-300'}`}
+                                                    >
+                                                        {u.isActive ? 'Deactivate' : 'Reactivate'}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <ConfirmModal
+                open={!!roleChange}
+                title="Change user role?"
+                description={
+                    roleChange
+                        ? `Set ${roleChange.user.fullName}'s role to ${ROLE_OPTIONS.find((r) => r.value === roleChange.newRole)?.label}? They'll need to log in again to see the change take effect.`
+                        : ''
+                }
+                confirmLabel="Confirm Change"
+                tone="default"
+                loading={working}
+                onConfirm={confirmRoleChange}
+                onClose={() => setRoleChange(null)}
+            />
+
+            <ConfirmModal
+                open={!!statusChange}
+                title={statusChange?.isActive ? 'Deactivate account?' : 'Reactivate account?'}
+                description={
+                    statusChange?.isActive
+                        ? `${statusChange?.fullName} won't be able to log in until reactivated.`
+                        : `${statusChange?.fullName} will be able to log in again.`
+                }
+                confirmLabel={statusChange?.isActive ? 'Deactivate' : 'Reactivate'}
+                tone={statusChange?.isActive ? 'danger' : 'default'}
+                loading={working}
+                onConfirm={confirmStatusChange}
+                onClose={() => setStatusChange(null)}
+            />
+
+            <style>{`
+                .input {
+                    width: 100%;
+                    background: rgb(17 24 39);
+                    border: 1px solid rgb(55 65 81);
+                    border-radius: 0.75rem;
+                    padding: 0.6rem 0.85rem;
+                    font-size: 0.875rem;
+                    color: white;
+                }
+                .input:focus {
+                    outline: none;
+                    border-color: rgb(249 115 22);
+                }
+            `}</style>
+        </div>
+    );
+}
+
+function Field({ label, children }) {
+    return (
+        <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">{label}</label>
+            {children}
+        </div>
+    );
+}
+
+function RoleBadge({ label, isAdmin }) {
+    return (
+        <span
+            className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border ${
+                isAdmin
+                    ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
+                    : 'bg-gray-800 text-gray-400 border-gray-700'
+            }`}
+        >
+            {isAdmin && <ShieldCheck size={10} className="inline mr-1 -mt-0.5" />}
+            {label}
+        </span>
+    );
+          }
