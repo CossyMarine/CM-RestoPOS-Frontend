@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../hooks/useAuth';
 import AdminSidebar from '../components/Admin/AdminSidebar';
 import DashboardOverview from '../components/Admin/DashboardOverview';
@@ -41,7 +39,6 @@ export default function Admin() {
             <main className="flex-1 p-8 overflow-y-auto h-screen">
                 <ActiveComponent />
             </main>
-            <ToastContainer position="top-right" theme="light" autoClose={3000} />
         </div>
     );
 }
