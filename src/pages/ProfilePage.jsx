@@ -1,34 +1,28 @@
+import { Link } from "react-router-dom";
 import { UserCircle2, LogOut, Phone, Mail, ShieldCheck } from "lucide-react";
 import BottomNav from "../components/BottomNav";
-import LoginForm from "../components/LoginForm";
-import RegisterForm from "../components/RegisterForm";
 import { useAuth } from "../hooks/useAuth";
-import { useState } from "react";
 
 function initials(name = "") {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase())
-    .join("") || "U";
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join("") || "U"
+  );
 }
 
 export default function ProfilePage() {
-  const { user, loading, setUser, logout } = useAuth();
-  const [tab, setTab] = useState("login"); // "login" | "register"
-
-  const handleAuthSuccess = (loggedInUser) => {
-    setUser(loggedInUser);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    setTab("login");
-  };
+  const { user, loading, logout } = useAuth();
 
   if (loading) {
-    return <div className="min-h-screen bg-stone-50 flex items-center justify-center text-stone-400">Loading…</div>;
+    return (
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center text-stone-400">
+        Loading…
+      </div>
+    );
   }
 
   // ---------- Logged-in view ----------
@@ -76,7 +70,7 @@ export default function ProfilePage() {
             </div>
 
             <button
-              onClick={handleLogout}
+              onClick={logout}
               className="mt-6 w-full flex items-center justify-center gap-2 border border-stone-200 text-stone-600 font-semibold py-3 rounded-xl hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
             >
               <LogOut size={16} /> Log out
@@ -89,52 +83,22 @@ export default function ProfilePage() {
     );
   }
 
-  // ---------- Logged-out: login / register ----------
+  // ---------- Logged-out: link out to the single login page ----------
   return (
-    <div className="min-h-screen bg-stone-50 pb-24">
-      <header className="bg-gradient-to-r from-stone-900 to-stone-800 px-6 pt-10 pb-16 text-center">
-        <div className="inline-flex items-center gap-2 mb-2">
-          <span className="text-2xl">🍴</span>
-          <span className="font-black text-xl text-white">
-            Resto<span className="text-orange-500">POS</span>
-          </span>
-        </div>
-        <p className="text-stone-400 text-sm">Sign in or create an account to track your orders</p>
-      </header>
-
-      <div className="max-w-md mx-auto px-5 -mt-10">
-        <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
-          <div className="flex border-b border-stone-100">
-            {["login", "register"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex-1 py-4 text-sm font-bold transition-colors relative ${
-                  tab === t ? "text-orange-500" : "text-stone-400"
-                }`}
-              >
-                {t === "login" ? "Log In" : "Sign Up"}
-                {tab === t && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500" />
-                )}
-              </button>
-            ))}
-          </div>
-
-          <div className="p-6">
-            {tab === "login" ? (
-              <LoginForm onSuccess={handleAuthSuccess} />
-            ) : (
-              <RegisterForm onSuccess={handleAuthSuccess} />
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-center gap-1.5 mt-5 text-xs text-stone-400">
-          <UserCircle2 size={14} />
-          Browsing and ordering doesn't require an account — sign in only for order history.
-        </div>
-      </div>
+    <div className="min-h-screen bg-stone-50 pb-24 flex flex-col items-center justify-center px-6 text-center">
+      <div className="text-5xl mb-4">👤</div>
+      <h1 className="text-xl font-black text-stone-900 mb-2">You're not signed in</h1>
+      <p className="text-stone-500 text-sm mb-6 max-w-xs">
+        Sign in to view your profile and order history, or create a new account.
+      </p>
+      <Link
+        to="/login"
+        state={{ from: "/profile" }}
+        className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-3 rounded-xl transition-colors"
+      >
+        <UserCircle2 size={18} />
+        Sign In / Sign Up
+      </Link>
 
       <BottomNav />
     </div>
