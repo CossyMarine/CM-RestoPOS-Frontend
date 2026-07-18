@@ -6,13 +6,12 @@ import API from "../api/axios";
 export default function RegisterForm({ onSuccess }) {
   const [method, setMethod] = useState("phone"); // "phone" | "email"
   const [contact, setContact] = useState("");
-  const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [contactStatus, setContactStatus] = useState(null); // "checking" | "available" | "taken" | null
-  const [usernameStatus, setUsernameStatus] = useState(null);
   const debounceRef = useRef(null);
 
   // Live-check contact (email/phone) availability as the person types
@@ -33,23 +32,6 @@ export default function RegisterForm({ onSuccess }) {
     return () => clearTimeout(debounceRef.current);
   }, [contact, method]);
 
-  // Live-check username availability
-  useEffect(() => {
-    if (!username.trim()) return setUsernameStatus(null);
-    const t = setTimeout(async () => {
-      setUsernameStatus("checking");
-      try {
-        const res = await API.get("/auth/check-availability", {
-          params: { field: "username", value: username.trim() },
-        });
-        setUsernameStatus(res.data.available ? "available" : "taken");
-      } catch {
-        setUsernameStatus(null);
-      }
-    }, 500);
-    return () => clearTimeout(t);
-  }, [username]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -61,21 +43,15 @@ export default function RegisterForm({ onSuccess }) {
       toast.error(`This ${method} is already registered`);
       return;
     }
-    if (usernameStatus === "taken") {
-      toast.error("That username is already taken");
-      return;
-    }
 
     setLoading(true);
     try {
       const res = await API.post("/auth/register-customer", {
+        fullName,
         method,
         contact,
-        username,
         password,
       });
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
       toast.success("Account created!");
       onSuccess?.(res.data.user);
     } catch (err) {
@@ -94,6 +70,18 @@ export default function RegisterForm({ onSuccess }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-semibold text-stone-700 mb-1.5">Full name</label>
+        <input
+          type="text"
+          placeholder="Jane Doe"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          required
+          className="w-full border border-stone-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+        />
+      </div>
+
       <div>
         <label className="block text-sm font-semibold text-stone-700 mb-1.5">Sign up with</label>
         <div className="flex rounded-xl overflow-hidden border border-stone-300">
@@ -137,30 +125,6 @@ export default function RegisterForm({ onSuccess }) {
           <p className="text-xs text-red-500 mt-1">
             This {method} is already registered — try logging in instead.
           </p>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-stone-700 mb-1.5">Username</label>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Choose a username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            className={`w-full border rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:ring-2 transition-colors ${
-              usernameStatus === "taken"
-                ? "border-red-300 focus:ring-red-200"
-                : "border-stone-300 focus:ring-orange-300"
-            }`}
-          />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2">
-            <StatusIcon status={usernameStatus} />
-          </span>
-        </div>
-        {usernameStatus === "taken" && (
-          <p className="text-xs text-red-500 mt-1">That username is already taken.</p>
         )}
       </div>
 
