@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../api/axios';
+import { useAuth } from '../hooks/useAuth';
 
-export default function CashierPage() {
-    const user = JSON.parse(localStorage.getItem('user'));
+export default function AdminPage() {
+    const navigate = useNavigate();
+    const { user, logout } = useAuth();
 
     const [receipts, setReceipts] = useState([]);
     const [selectedReceipt, setSelectedReceipt] = useState(null);
@@ -33,13 +36,16 @@ export default function CashierPage() {
             setSelectedReceipt(null);
             setPaymentMethod('');
             setAmountPaid('');
-            // Re-fetch from the server so a paid receipt is confirmed gone,
-            // not just removed from local state.
             fetchReceipts();
         } catch (err) {
             console.error('Payment failed', err);
         }
         setLoading(false);
+    };
+
+    const handleLogout = async () => {
+        await logout();
+        navigate('/login');
     };
 
     return (
@@ -48,9 +54,17 @@ export default function CashierPage() {
             <nav className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <span className="text-xl">🍴</span>
-                    <span className="font-black text-lg">Resto<span className="text-orange-500">POS</span></span>
+                    <span className="font-black text-lg">Resto<span className="text-orange-500">POS</span> <span className="text-gray-500 font-semibold text-sm">Admin</span></span>
                 </div>
-                <span className="text-gray-400 text-sm">👤 {user?.fullName} · {user?.role}</span>
+                <div className="flex items-center gap-4">
+                    <span className="text-gray-400 text-sm">👤 {user?.fullName}</span>
+                    <button
+                        onClick={handleLogout}
+                        className="text-gray-400 hover:text-white text-sm font-semibold transition-colors"
+                    >
+                        Sign Out
+                    </button>
+                </div>
             </nav>
 
             <div className="max-w-4xl mx-auto px-6 py-8">
@@ -159,4 +173,4 @@ export default function CashierPage() {
             )}
         </div>
     );
-                                }
+}
