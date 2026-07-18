@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import { routeForUser } from "./utils/routeForUser";
 import LoginPage from "./pages/LoginPage";
-import AdminPage from "./pages/AdminPage";
+import Admin from "./pages/Admin";
 import WaiterPage from "./pages/WaiterPage";
 import KitchenPage from "./pages/KitchenPage";
 import AccountantPage from "./pages/AccountantPage";
@@ -34,14 +34,11 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/home" replace />} />
 
-        {/* Customer-facing, no login required */}
         <Route path="/home" element={<CustomerPage />} />
         <Route path="/order" element={<Navigate to="/home" replace />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/profile" element={<ProfilePage />} />
 
-        {/* The one and only login/signup entry point — handles admin, waiter,
-            kitchen, accountant, and customer accounts, redirecting each on success. */}
         <Route
           path="/login"
           element={
@@ -59,7 +56,7 @@ export default function App() {
           path="/admin"
           element={
             <StaffRoute user={user} loading={loading} allow="admin">
-              <AdminPage />
+              <Admin />
             </StaffRoute>
           }
         />
@@ -88,7 +85,6 @@ export default function App() {
           }
         />
 
-        {/* legacy link compatibility */}
         <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
 
         <Route path="*" element={<Navigate to="/home" replace />} />
