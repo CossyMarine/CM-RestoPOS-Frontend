@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams, Link } from "react-router-dom";
 import LoginForm from "../components/LoginForm";
 import RegisterForm from "../components/RegisterForm";
 import { routeForUser } from "../utils/routeForUser";
@@ -7,7 +7,8 @@ import { routeForUser } from "../utils/routeForUser";
 export default function LoginPage({ onAuthed }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [tab, setTab] = useState("login"); // "login" | "register"
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get("tab") === "register" ? "register" : "login"); // "login" | "register"
 
   // Staff (admin/kitchen/waiter/accountant) always land on their dashboard.
   // Customers return to wherever they came from (e.g. /profile), or /home.
