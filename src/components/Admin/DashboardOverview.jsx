@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Eye, RefreshCw, Filter, ShieldAlert, Wallet, ReceiptText } from 'lucide-react';
+import { Eye, RefreshCw, ShieldAlert, Wallet, ReceiptText } from 'lucide-react';
 import API from '../../api/axios';
 import ViewItemsModal from './ViewItemsModal';
 
@@ -62,30 +62,30 @@ export default function DashboardOverview() {
     }, [combined, dateFrom, dateTo, revenueToday]);
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 bg-gray-50 min-h-screen p-1 text-gray-800">
             <div className="flex flex-wrap justify-between items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-black text-white">Dashboard Overview</h2>
+                    <h2 className="text-2xl font-black text-gray-800">Dashboard Overview</h2>
                     <p className="text-sm text-gray-500">Live summary across today's activity</p>
                 </div>
 
-                <div className="flex items-center gap-2 bg-gray-900 border border-gray-700 p-2 rounded-lg text-sm">
+                <div className="flex items-center gap-2 bg-white border border-gray-200 p-2 rounded-lg text-sm shadow-sm">
                     <input
                         type="date"
                         value={dateFrom}
                         onChange={(e) => setDateFrom(e.target.value)}
-                        className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-300 focus:outline-none focus:border-orange-500"
+                        className="bg-gray-50 border border-gray-200 rounded px-2 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                     />
-                    <span className="text-gray-600">to</span>
+                    <span className="text-gray-400">to</span>
                     <input
                         type="date"
                         value={dateTo}
                         onChange={(e) => setDateTo(e.target.value)}
-                        className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-300 focus:outline-none focus:border-orange-500"
+                        className="bg-gray-50 border border-gray-200 rounded px-2 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                     />
                     <button
                         onClick={fetchAll}
-                        className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded font-semibold transition-colors"
+                        className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded font-semibold transition-colors shadow-sm"
                     >
                         <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
                         Refresh
@@ -112,12 +112,12 @@ export default function DashboardOverview() {
                 />
             </div>
 
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
-                <h3 className="text-lg font-black text-white mb-4">Recent Receipts</h3>
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm overflow-hidden">
+                <h3 className="text-lg font-black text-gray-800 mb-4">Recent Receipts</h3>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                         <thead>
-                            <tr className="text-gray-500 font-semibold border-b border-gray-800">
+                            <tr className="text-gray-400 font-semibold border-b border-gray-100">
                                 <th className="p-3">Bill ID</th>
                                 <th className="p-3">Waiter</th>
                                 <th className="p-3">Table</th>
@@ -127,21 +127,21 @@ export default function DashboardOverview() {
                                 <th className="p-3 text-right">Action</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-800/70 text-gray-300">
+                        <tbody className="divide-y divide-gray-100 text-gray-600">
                             {combined.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="p-6 text-center text-gray-600">
+                                    <td colSpan={7} className="p-6 text-center text-gray-400 font-medium">
                                         No receipts in this range
                                     </td>
                                 </tr>
                             ) : (
                                 combined.map((r) => (
-                                    <tr key={r._id} className="hover:bg-gray-800/40 transition-colors">
-                                        <td className="p-3 font-bold text-orange-400">{r.billId}</td>
-                                        <td className="p-3">{r.waiterName || '—'}</td>
+                                    <tr key={r._id} className="hover:bg-gray-50/70 transition-colors">
+                                        <td className="p-3 font-bold text-orange-500">{r.billId}</td>
+                                        <td className="p-3 font-medium">{r.waiterName || '—'}</td>
                                         <td className="p-3 font-semibold">Table {r.tableNumber}</td>
-                                        <td className="p-3 font-bold text-white">KES {r.subtotal.toLocaleString()}</td>
-                                        <td className="p-3 text-xs text-gray-500">
+                                        <td className="p-3 font-bold text-gray-800">KES {r.subtotal.toLocaleString()}</td>
+                                        <td className="p-3 text-xs text-gray-400">
                                             {new Date(r.createdAt).toLocaleString()}
                                         </td>
                                         <td className="p-3">
@@ -150,7 +150,7 @@ export default function DashboardOverview() {
                                         <td className="p-3 text-right">
                                             <button
                                                 onClick={() => setViewing(r)}
-                                                className="inline-flex items-center gap-1 text-gray-400 hover:text-orange-400 text-xs font-semibold transition-colors"
+                                                className="inline-flex items-center gap-1 text-gray-400 hover:text-orange-500 text-xs font-semibold transition-colors"
                                             >
                                                 <Eye size={14} /> View
                                             </button>
@@ -177,25 +177,25 @@ export default function DashboardOverview() {
 
 function MetricCard({ icon: Icon, label, value, accent }) {
     return (
-        <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-                <p className="text-xs uppercase tracking-wider font-bold text-gray-500">{label}</p>
-                <Icon size={18} className={accent ? 'text-orange-500' : 'text-gray-600'} />
+                <p className="text-xs uppercase tracking-wider font-bold text-gray-400">{label}</p>
+                <Icon size={18} className={accent ? 'text-orange-500' : 'text-gray-400'} />
             </div>
-            <h3 className={`text-2xl font-black mt-1 ${accent ? 'text-orange-500' : 'text-white'}`}>{value}</h3>
+            <h3 className={`text-2xl font-black mt-1 ${accent ? 'text-orange-500' : 'text-gray-800'}`}>{value}</h3>
         </div>
     );
 }
 
 function StatusPill({ status }) {
     const styles = {
-        unpaid: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-        paid: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-        voided: 'bg-red-500/10 text-red-400 border-red-500/30',
+        unpaid: 'bg-amber-50 text-amber-700 border-amber-200',
+        paid: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        voided: 'bg-red-50 text-red-600 border-red-200',
     };
     return (
         <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border ${styles[status] || styles.unpaid}`}>
             {status}
         </span>
     );
-              }
+}
