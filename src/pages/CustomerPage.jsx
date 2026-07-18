@@ -59,6 +59,7 @@ export default function CustomerPage() {
   const [cancelTarget, setCancelTarget] = useState(null);
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState(getStoredFavorites);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   useEffect(() => {
     API.get("/menu")
@@ -128,6 +129,7 @@ export default function CustomerPage() {
       }
       return [...prev, { id: item._id, name: item.name, price: Number(item.price), qty: 1 }];
     });
+    toast.success(`${item.name} added to cart`);
   };
 
   const changeQty = (id, delta) => {
@@ -149,7 +151,9 @@ export default function CustomerPage() {
       toast.error("Your cart is empty");
       return;
     }
+    if (isPlacingOrder) return;
 
+    setIsPlacingOrder(true);
     try {
       const items = cart.map((i) => ({
         mealName: i.name,
@@ -169,6 +173,8 @@ export default function CustomerPage() {
       toast.success("Order placed!");
     } catch (err) {
       toast.error(err.response?.data?.message || "Couldn't place your order");
+    } finally {
+      setIsPlacingOrder(false);
     }
   };
 
@@ -309,9 +315,10 @@ export default function CustomerPage() {
 
           <button
             onClick={handlePlaceOrder}
-            className="mt-4 w-full bg-stone-900 hover:bg-stone-700 text-white font-bold py-3 rounded-xl transition-colors"
+            disabled={isPlacingOrder}
+            className="mt-4 w-full bg-stone-900 hover:bg-stone-700 disabled:bg-stone-400 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
           >
-            Place Order
+            {isPlacingOrder ? "Placing order…" : "Place Order"}
           </button>
         </div>
       </div>
@@ -368,4 +375,4 @@ export default function CustomerPage() {
       <BottomNav />
     </div>
   );
-        }
+                                                                               }
