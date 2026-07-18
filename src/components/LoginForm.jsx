@@ -13,8 +13,6 @@ export default function LoginForm({ onSuccess }) {
     setLoading(true);
     try {
       const res = await API.post("/auth/login", { identifier, password });
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
       toast.success(`Welcome back, ${res.data.user.fullName}`);
       onSuccess?.(res.data.user);
     } catch (err) {
@@ -28,11 +26,11 @@ export default function LoginForm({ onSuccess }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-semibold text-stone-700 mb-1.5">
-          Username, email, or phone
+          Email or phone
         </label>
         <input
           type="text"
-          placeholder="e.g. jane254 or jane@mail.com"
+          placeholder="e.g. jane@mail.com or 07XX XXX XXX"
           value={identifier}
           onChange={(e) => setIdentifier(e.target.value)}
           required
