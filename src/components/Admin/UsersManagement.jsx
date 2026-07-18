@@ -110,15 +110,15 @@ export default function UsersManagement() {
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 bg-gray-50 text-gray-800">
             <div className="flex flex-wrap justify-between items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-black text-white">Manage Users</h2>
+                    <h2 className="text-2xl font-black text-gray-800">Manage Users</h2>
                     <p className="text-sm text-gray-500">Promote staff, change roles, and control account access</p>
                 </div>
                 <button
                     onClick={fetchUsers}
-                    className="flex items-center gap-1.5 bg-gray-900 border border-gray-700 hover:border-orange-500/40 text-gray-400 hover:text-orange-400 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                    className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-orange-500/40 text-gray-500 hover:text-orange-500 px-3 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                 >
                     <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
                     Refresh
@@ -127,8 +127,8 @@ export default function UsersManagement() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Create account form */}
-                <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 h-fit">
-                    <h3 className="text-base font-black text-white border-b border-gray-800 pb-3 mb-4 flex items-center gap-2">
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 h-fit shadow-sm">
+                    <h3 className="text-base font-black text-gray-800 border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
                         <UserPlus size={16} className="text-orange-500" />
                         Add Staff Account
                     </h3>
@@ -188,7 +188,7 @@ export default function UsersManagement() {
                         <button
                             onClick={handleCreate}
                             disabled={creating}
-                            className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 mt-2"
+                            className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm disabled:opacity-50 mt-2"
                         >
                             <UserPlus size={16} />
                             {creating ? 'Creating…' : 'Create Account'}
@@ -197,14 +197,14 @@ export default function UsersManagement() {
                 </div>
 
                 {/* Users table */}
-                <div className="lg:col-span-2 bg-gray-900 border border-gray-700 rounded-2xl p-6">
-                    <h3 className="text-base font-black text-white border-b border-gray-800 pb-3 mb-4">
+                <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                    <h3 className="text-base font-black text-gray-800 border-b border-gray-100 pb-3 mb-4">
                         All Staff & Admin Accounts ({users.length})
                     </h3>
                     <div className="overflow-x-auto max-h-[560px] overflow-y-auto">
                         <table className="w-full text-left text-sm">
                             <thead>
-                                <tr className="text-gray-500 font-semibold border-b border-gray-800 sticky top-0 bg-gray-900">
+                                <tr className="text-gray-400 font-semibold border-b border-gray-100 sticky top-0 bg-white z-10">
                                     <th className="p-3">Name</th>
                                     <th className="p-3">Contact</th>
                                     <th className="p-3">Role</th>
@@ -212,28 +212,28 @@ export default function UsersManagement() {
                                     <th className="p-3 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-800/70 text-gray-300">
+                            <tbody className="divide-y divide-gray-100 text-gray-600">
                                 {users.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="p-8 text-center text-gray-600">
+                                        <td colSpan={5} className="p-8 text-center text-gray-400 font-medium">
                                             No staff accounts yet
                                         </td>
                                     </tr>
                                 ) : (
                                     users.map((u) => (
-                                        <tr key={u.id} className="hover:bg-gray-800/40 transition-colors">
-                                            <td className="p-3 font-bold text-white">{u.fullName}</td>
+                                        <tr key={u.id} className="hover:bg-gray-50/70 transition-colors">
+                                            <td className="p-3 font-bold text-gray-800">{u.fullName}</td>
                                             <td className="p-3 text-xs text-gray-400">{u.email || u.phone}</td>
                                             <td className="p-3">
                                                 <RoleBadge label={roleLabel(u)} isAdmin={u.isAdmin} />
                                             </td>
                                             <td className="p-3">
                                                 {u.isActive ? (
-                                                    <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-bold">
+                                                    <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-bold">
                                                         <CheckCircle2 size={13} /> Active
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 text-red-400 text-xs font-bold">
+                                                    <span className="inline-flex items-center gap-1 text-red-500 text-xs font-bold">
                                                         <Ban size={13} /> Deactivated
                                                     </span>
                                                 )}
@@ -248,7 +248,7 @@ export default function UsersManagement() {
                                                                 setRoleChange({ user: u, newRole });
                                                             }
                                                         }}
-                                                        className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-orange-500"
+                                                        className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                                                     >
                                                         {ROLE_OPTIONS.map((r) => (
                                                             <option key={r.value} value={r.value}>{r.label}</option>
@@ -256,7 +256,7 @@ export default function UsersManagement() {
                                                     </select>
                                                     <button
                                                         onClick={() => setStatusChange(u)}
-                                                        className={`text-xs font-bold transition-colors ${u.isActive ? 'text-red-400 hover:text-red-300' : 'text-emerald-400 hover:text-emerald-300'}`}
+                                                        className={`text-xs font-bold transition-colors ${u.isActive ? 'text-red-500 hover:text-red-600' : 'text-emerald-600 hover:text-emerald-700'}`}
                                                     >
                                                         {u.isActive ? 'Deactivate' : 'Reactivate'}
                                                     </button>
@@ -304,16 +304,21 @@ export default function UsersManagement() {
             <style>{`
                 .input {
                     width: 100%;
-                    background: rgb(17 24 39);
-                    border: 1px solid rgb(55 65 81);
+                    background: rgb(249 250 251);
+                    border: 1px solid rgb(229 231 235);
                     border-radius: 0.75rem;
                     padding: 0.6rem 0.85rem;
                     font-size: 0.875rem;
-                    color: white;
+                    color: rgb(31 41 55);
                 }
                 .input:focus {
                     outline: none;
                     border-color: rgb(249 115 22);
+                    background: white;
+                    box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.1);
+                }
+                .input::placeholder {
+                    color: rgb(156 163 175);
                 }
             `}</style>
         </div>
@@ -323,7 +328,7 @@ export default function UsersManagement() {
 function Field({ label, children }) {
     return (
         <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">{label}</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-1">{label}</label>
             {children}
         </div>
     );
@@ -334,12 +339,12 @@ function RoleBadge({ label, isAdmin }) {
         <span
             className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border ${
                 isAdmin
-                    ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
-                    : 'bg-gray-800 text-gray-400 border-gray-700'
+                    ? 'bg-orange-50 text-orange-600 border-orange-200'
+                    : 'bg-gray-100 text-gray-500 border-gray-200'
             }`}
         >
             {isAdmin && <ShieldCheck size={10} className="inline mr-1 -mt-0.5" />}
             {label}
         </span>
     );
-          }
+}
