@@ -1,19 +1,9 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { UserCircle2, LogOut, Phone, Mail, ShieldCheck } from "lucide-react";
 import BottomNav from "../components/BottomNav";
 import LoginForm from "../components/LoginForm";
 import RegisterForm from "../components/RegisterForm";
-
-const ROLE_ROUTE = {
-  admin: "/dashboard",
-  manager: "/dashboard",
-  accountant: "/dashboard",
-  cashier: "/dashboard",
-  waiter: "/waiter",
-  kitchen: "/kitchen",
-  customer: "/profile",
-};
+import { useAuth } from "../hooks/useAuth";
+import { useState } from "react";
 
 function initials(name = "") {
   return name
@@ -25,33 +15,21 @@ function initials(name = "") {
 }
 
 export default function ProfilePage() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(() => {
-    const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
-  });
+  const { user, loading, setUser, logout } = useAuth();
   const [tab, setTab] = useState("login"); // "login" | "register"
 
-  useEffect(() => {
-    if (user && user.role !== "customer") {
-      navigate(ROLE_ROUTE[user.role] || "/order", { replace: true });
-    }
-  }, [user, navigate]);
-
   const handleAuthSuccess = (loggedInUser) => {
-    if (loggedInUser.role !== "customer") {
-      navigate(ROLE_ROUTE[loggedInUser.role] || "/order", { replace: true });
-      return;
-    }
     setUser(loggedInUser);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUser(null);
+  const handleLogout = async () => {
+    await logout();
     setTab("login");
   };
+
+  if (loading) {
+    return <div className="min-h-screen bg-stone-50 flex items-center justify-center text-stone-400">Loading…</div>;
+  }
 
   // ---------- Logged-in view ----------
   if (user) {
@@ -70,7 +48,6 @@ export default function ProfilePage() {
               </div>
               <div className="min-w-0">
                 <h2 className="font-black text-stone-900 text-lg truncate">{user.fullName}</h2>
-                <p className="text-stone-400 text-sm truncate">@{user.username}</p>
                 <span className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-bold uppercase tracking-wide text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
                   <ShieldCheck size={11} /> Customer
                 </span>
