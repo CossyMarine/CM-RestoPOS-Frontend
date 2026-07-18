@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { io } from "socket.io-client";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
-import { UtensilsCrossed, Plus, Minus, X, ShoppingCart, Clock, User } from "lucide-react";
+import { UtensilsCrossed, Plus, Minus, X, ShoppingCart, Clock, User, Heart } from "lucide-react";
 import useGuestSession from "../hooks/useGuestSession";
 import { useAuth } from "../hooks/useAuth";
 import API from "../api/axios";
@@ -18,6 +18,17 @@ const STATUS_STYLE = {
   cancelled: "bg-red-100 text-red-700",
 };
 const STATUS_LABEL = { pending: "Pending", serving: "Serving", completed: "Delivered", cancelled: "Cancelled" };
+
+const FAVORITES_KEY = "customer_favorite_meals";
+
+function getStoredFavorites() {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
 
 function MenuImage({ src, alt }) {
   const [broken, setBroken] = useState(false);
@@ -47,6 +58,7 @@ export default function CustomerPage() {
   const [orders, setOrders] = useState([]);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [favorites, setFavorites] = useState(getStoredFavorites);
 
   useEffect(() => {
     API.get("/menu")
@@ -83,7 +95,29 @@ export default function CustomerPage() {
     return ["all", ...Array.from(set)];
   }, [menu]);
 
-  const visibleMenu = category === "all" ? menu : menu.filter((m) => m.category === category);
+  const toggleFavorite = (id) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
+
+  // Favorited items always come first, original order preserved otherwise.
+  const visibleMenu = useMemo(() => {
+    const base = category === "all" ? menu : menu.filter((m) => m.category === category);
+    return [...base].sort((a, b) => {
+      const aFav = favorites.has(a._id) ? 1 : 0;
+      const bFav = favorites.has(b._id) ? 1 : 0;
+      return bFav - aFav;
+    });
+  }, [menu, category, favorites]);
+
   const cartTotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 
   const addToCart = (item) => {
@@ -117,7 +151,12 @@ export default function CustomerPage() {
     }
 
     try {
-      const items = cart.map((i) => ({ mealName: i.name, quantity: i.qty, unitPrice: i.price }));
+      const items = cart.map((i) => ({
+        mealName: i.name,
+        quantity: i.qty,
+        unitPrice: i.price,
+        lineTotal: i.qty * i.price,
+      }));
       await API.post("/orders/customer", {
         tableNumber,
         items,
@@ -195,25 +234,41 @@ export default function CustomerPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-5 mt-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Menu grid */}
-        <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {loading && <p className="text-stone-400 text-sm col-span-full">Loading menu…</p>}
-          {!loading && visibleMenu.length === 0 && (
-            <p className="text-stone-400 text-sm col-span-full">No items in this category yet.</p>
-          )}
-          {visibleMenu.map((item) => (
-            <div key={item._id} className="bg-white rounded-xl border border-stone-200 p-3 flex flex-col">
-              <MenuImage src={item.imageUrl} alt={item.name} />
-              <h3 className="font-bold text-stone-900 text-sm mt-3">{item.name}</h3>
-              <p className="text-orange-500 font-black text-sm mb-3">KSh {Number(item.price).toLocaleString()}</p>
-              <button
-                onClick={() => addToCart(item)}
-                className="mt-auto w-full bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
-              >
-                Add
-              </button>
-            </div>
-          ))}
+        {/* Menu grid — locked to 2 columns, scrolls independently so the cart stays visible */}
+        <div className="lg:col-span-2">
+          <div className="grid grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto pr-1">
+            {loading && <p className="text-stone-400 text-sm col-span-full">Loading menu…</p>}
+            {!loading && visibleMenu.length === 0 && (
+              <p className="text-stone-400 text-sm col-span-full">No items in this category yet.</p>
+            )}
+            {visibleMenu.map((item) => {
+              const isFavorite = favorites.has(item._id);
+              return (
+                <div key={item._id} className="relative bg-white rounded-xl border border-stone-200 p-3 flex flex-col">
+                  <button
+                    onClick={() => toggleFavorite(item._id)}
+                    aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/90 border border-stone-200 flex items-center justify-center"
+                  >
+                    <Heart
+                      size={14}
+                      className={isFavorite ? "text-red-500" : "text-stone-400"}
+                      fill={isFavorite ? "currentColor" : "none"}
+                    />
+                  </button>
+                  <MenuImage src={item.imageUrl} alt={item.name} />
+                  <h3 className="font-bold text-stone-900 text-sm mt-3">{item.name}</h3>
+                  <p className="text-orange-500 font-black text-sm mb-3">KSh {Number(item.price).toLocaleString()}</p>
+                  <button
+                    onClick={() => addToCart(item)}
+                    className="mt-auto w-full bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Cart */}
@@ -310,7 +365,7 @@ export default function CustomerPage() {
           </div>
         </div>
       )}
-        <BottomNav />
+      <BottomNav />
     </div>
   );
-                                     }
+        }
