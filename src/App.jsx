@@ -1,58 +1,104 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import CashierPage from "./pages/CashierPage";
+import { useAuth } from "./hooks/useAuth";
+import LoginPage from "./pages/LoginPage";
+import AdminPage from "./pages/AdminPage";
 import WaiterPage from "./pages/WaiterPage";
 import KitchenPage from "./pages/KitchenPage";
+import AccountantPage from "./pages/AccountantPage";
 import CustomerPage from "./pages/CustomerPage";
 import OrdersPage from "./pages/OrdersPage";
 import ProfilePage from "./pages/ProfilePage";
 
-function PrivateRoute({ children }) {
-  const token = localStorage.getItem("token");
-  if (!token) return <Navigate to="/profile" replace />;
+function routeForUser(user) {
+  if (!user) return "/login";
+  if (user.isAdmin) return "/admin";
+  if (user.role === "kitchen") return "/kitchen";
+  if (user.role === "waiter") return "/waiter";
+  if (user.role === "accountant") return "/accountant";
+  return "/home";
+}
+
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-950 text-gray-400 text-sm">
+      Loading…
+    </div>
+  );
+}
+
+function StaffRoute({ user, loading, allow, children }) {
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  const ok = allow === "admin" ? user.isAdmin : user.role === allow;
+  if (!ok) return <Navigate to={routeForUser(user)} replace />;
   return children;
 }
 
 export default function App() {
+  const { user, loading } = useAuth();
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/order" replace />} />
+        <Route path="/" element={<Navigate to="/home" replace />} />
 
         {/* Customer-facing, no login required */}
-        <Route path="/order" element={<CustomerPage />} />
+        <Route path="/home" element={<CustomerPage />} />
+        <Route path="/order" element={<Navigate to="/home" replace />} />
         <Route path="/orders" element={<OrdersPage />} />
-
-        {/* One login/register page for everyone, lives in the Profile tab */}
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/login" element={<Navigate to="/profile" replace />} />
-        <Route path="/register" element={<Navigate to="/profile" replace />} />
+
+        {/* Staff login — one clean entry point instead of /dashboard mess */}
+        <Route
+          path="/login"
+          element={
+            loading ? (
+              <LoadingScreen />
+            ) : user ? (
+              <Navigate to={routeForUser(user)} replace />
+            ) : (
+              <LoginPage />
+            )
+          }
+        />
 
         <Route
-          path="/dashboard"
+          path="/admin"
           element={
-            <PrivateRoute>
-              <CashierPage />
-            </PrivateRoute>
+            <StaffRoute user={user} loading={loading} allow="admin">
+              <AdminPage />
+            </StaffRoute>
           }
         />
         <Route
           path="/waiter"
           element={
-            <PrivateRoute>
+            <StaffRoute user={user} loading={loading} allow="waiter">
               <WaiterPage />
-            </PrivateRoute>
+            </StaffRoute>
           }
         />
         <Route
           path="/kitchen"
           element={
-            <PrivateRoute>
+            <StaffRoute user={user} loading={loading} allow="kitchen">
               <KitchenPage />
-            </PrivateRoute>
+            </StaffRoute>
+          }
+        />
+        <Route
+          path="/accountant"
+          element={
+            <StaffRoute user={user} loading={loading} allow="accountant">
+              <AccountantPage />
+            </StaffRoute>
           }
         />
 
-        <Route path="*" element={<Navigate to="/order" replace />} />
+        {/* legacy link compatibility */}
+        <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
+
+        <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
     </BrowserRouter>
   );
