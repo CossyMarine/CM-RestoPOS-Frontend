@@ -44,26 +44,26 @@ export default function VoidRequestsView() {
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 bg-gray-50 text-gray-800">
             <div className="flex flex-wrap justify-between items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-black text-white">Void Authorization Requests</h2>
+                    <h2 className="text-2xl font-black text-gray-800">Void Authorization Requests</h2>
                     <p className="text-sm text-gray-500">Approve or reject requests to void a receipt</p>
                 </div>
                 <button
                     onClick={fetchRequests}
-                    className="flex items-center gap-1.5 bg-gray-900 border border-gray-700 hover:border-orange-500/40 text-gray-400 hover:text-orange-400 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                    className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-orange-500/40 text-gray-500 hover:text-orange-500 px-3 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                 >
                     <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
                     Refresh
                 </button>
             </div>
 
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                         <thead>
-                            <tr className="text-gray-500 font-semibold border-b border-gray-800">
+                            <tr className="text-gray-400 font-semibold border-b border-gray-100">
                                 <th className="p-3">Bill ID</th>
                                 <th className="p-3">Table</th>
                                 <th className="p-3">Requested By</th>
@@ -72,41 +72,41 @@ export default function VoidRequestsView() {
                                 <th className="p-3 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-800/70 text-gray-300">
+                        <tbody className="divide-y divide-gray-100 text-gray-600">
                             {requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-10 text-center text-gray-600">
+                                    <td colSpan={6} className="p-10 text-center text-gray-400 font-medium">
                                         No pending void requests
                                     </td>
                                 </tr>
                             ) : (
                                 requests.map((v) => (
-                                    <tr key={v._id} className="hover:bg-gray-800/40 transition-colors">
-                                        <td className="p-3 font-bold text-orange-400">{v.receipt?.billId}</td>
-                                        <td className="p-3 font-semibold">Table {v.receipt?.tableNumber}</td>
-                                        <td className="p-3">{v.requestedBy?.fullName || '—'}</td>
-                                        <td className="p-3 text-xs text-gray-500">
+                                    <tr key={v._id} className="hover:bg-gray-50/70 transition-colors">
+                                        <td className="p-3 font-bold text-orange-500">{v.receipt?.billId}</td>
+                                        <td className="p-3 font-semibold text-gray-800">Table {v.receipt?.tableNumber}</td>
+                                        <td className="p-3 font-medium">{v.requestedBy?.fullName || '—'}</td>
+                                        <td className="p-3 text-xs text-gray-400">
                                             {new Date(v.createdAt).toLocaleString()}
                                         </td>
-                                        <td className="p-3 text-xs italic text-amber-300 max-w-xs truncate" title={v.reason}>
+                                        <td className="p-3 text-xs italic text-amber-700 max-w-xs truncate" title={v.reason}>
                                             {v.reason}
                                         </td>
                                         <td className="p-3 text-right space-x-3 whitespace-nowrap">
                                             <button
                                                 onClick={() => setViewing(v.receipt)}
-                                                className="inline-flex items-center gap-1 text-gray-400 hover:text-orange-400 text-xs font-semibold transition-colors"
+                                                className="inline-flex items-center gap-1 text-gray-400 hover:text-orange-500 text-xs font-semibold transition-colors"
                                             >
                                                 <Eye size={14} /> View
                                             </button>
                                             <button
                                                 onClick={() => setPendingAction({ request: v, action: 'approve' })}
-                                                className="text-red-400 hover:text-red-300 text-xs font-bold transition-colors"
+                                                className="text-red-500 hover:text-red-600 text-xs font-bold transition-colors"
                                             >
                                                 Approve Void
                                             </button>
                                             <button
                                                 onClick={() => setPendingAction({ request: v, action: 'reject' })}
-                                                className="text-gray-400 hover:text-white text-xs font-bold transition-colors"
+                                                className="text-gray-400 hover:text-gray-600 text-xs font-bold transition-colors"
                                             >
                                                 Reject
                                             </button>
