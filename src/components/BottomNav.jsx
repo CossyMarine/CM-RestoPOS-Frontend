@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import { UtensilsCrossed, Receipt, User } from "lucide-react";
 
 const tabs = [
-  { to: "/order", label: "Menu", icon: UtensilsCrossed },
+  { to: "/home", label: "Menu", icon: UtensilsCrossed },
   { to: "/orders", label: "Orders", icon: Receipt },
   { to: "/profile", label: "Profile", icon: User },
 ];
