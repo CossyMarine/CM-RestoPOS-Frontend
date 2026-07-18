@@ -31,7 +31,7 @@ export default function Admin() {
     const ActiveComponent = VIEWS[activeView] || DashboardOverview;
 
     return (
-        <div className="min-h-screen bg-gray-950 text-white flex">
+        <div className="min-h-screen bg-gray-50 text-gray-800 flex">
             <AdminSidebar
                 activeView={activeView}
                 onNavigate={setActiveView}
@@ -41,7 +41,7 @@ export default function Admin() {
             <main className="flex-1 p-8 overflow-y-auto h-screen">
                 <ActiveComponent />
             </main>
-            <ToastContainer position="top-right" theme="dark" autoClose={3000} />
+            <ToastContainer position="top-right" theme="light" autoClose={3000} />
         </div>
     );
 }
