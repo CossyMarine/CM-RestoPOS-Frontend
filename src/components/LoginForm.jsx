@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import API from "../api/axios";
 
-export default function LoginForm({ onSuccess }) {
+export default function LoginForm({ onSuccess, onSwitchToRegister }) {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -67,6 +67,17 @@ export default function LoginForm({ onSuccess }) {
       >
         {loading ? "Signing in…" : "Sign In"}
       </button>
+
+      <p className="text-center text-sm text-stone-500 pt-1">
+        Don't have an account?{" "}
+        <button
+          type="button"
+          onClick={onSwitchToRegister}
+          className="text-orange-500 font-semibold hover:text-orange-600"
+        >
+          Sign up
+        </button>
+      </p>
     </form>
   );
 }
