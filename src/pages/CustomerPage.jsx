@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { io } from "socket.io-client";
 import { toast } from "react-toastify";
-import { UtensilsCrossed, Plus, Minus, X, ShoppingCart, Clock } from "lucide-react";
+import { Link } from "react-router-dom";
+import { UtensilsCrossed, Plus, Minus, X, ShoppingCart, Clock, User } from "lucide-react";
 import useGuestSession from "../hooks/useGuestSession";
+import { useAuth } from "../hooks/useAuth";
 import API from "../api/axios";
 
 import BottomNav from "../components/BottomNav";
@@ -38,6 +40,7 @@ function MenuImage({ src, alt }) {
 
 export default function CustomerPage() {
   const { sessionId, tableNumber, setTableNumber } = useGuestSession();
+  const { user } = useAuth();
   const [menu, setMenu] = useState([]);
   const [category, setCategory] = useState("all");
   const [cart, setCart] = useState([]);
@@ -115,7 +118,12 @@ export default function CustomerPage() {
 
     try {
       const items = cart.map((i) => ({ mealName: i.name, quantity: i.qty, unitPrice: i.price }));
-      await API.post("/orders/customer", { tableNumber, items, guestSessionId: sessionId });
+      await API.post("/orders/customer", {
+        tableNumber,
+        items,
+        guestSessionId: sessionId,
+        customerName: user?.fullName || undefined,
+      });
       setCart([]);
       const res = await API.get("/orders/customer", { params: { sessionId } });
       setOrders(res.data);
@@ -149,14 +157,25 @@ export default function CustomerPage() {
             </h1>
             <p className="text-xs text-stone-400">Order straight from your table</p>
           </div>
-          <input
-            type="text"
-            inputMode="numeric"
-            placeholder="Table No."
-            value={tableNumber}
-            onChange={(e) => setTableNumber(e.target.value)}
-            className="w-28 border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-          />
+
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="Table No."
+              value={tableNumber}
+              onChange={(e) => setTableNumber(e.target.value)}
+              className="w-28 border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+            />
+
+            <Link
+              to="/profile"
+              className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-stone-600 hover:text-orange-500 transition-colors whitespace-nowrap"
+            >
+              <User size={16} />
+              {user ? user.fullName.split(" ")[0] : "Sign in"}
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -294,4 +313,4 @@ export default function CustomerPage() {
         <BottomNav />
     </div>
   );
-}
+                                     }
