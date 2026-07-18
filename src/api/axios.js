@@ -16,32 +16,33 @@ delete API.defaults.headers.put["Content-Type"];
 API.interceptors.request.use(
   (config) => {
     if (config.data instanceof FormData) {
-      // Setting to undefined (not delete) ensures axios skips it entirely
-      // and lets the browser set multipart/form-data with the correct boundary
       config.headers["Content-Type"] = undefined;
     } else {
-      // Explicitly set JSON for non-FormData requests
       config.headers["Content-Type"] = "application/json";
     }
-
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Redirect to staff login on session expiry
+// Redirect to staff login on session expiry — but NOT for the /auth/me
+// identity check, since a 401 there just means "nobody's logged in yet",
+// which is the normal state on public pages like /home.
 API.interceptors.response.use(
   (res) => res,
   (error) => {
+    const isMeCheck = error.config?.url?.includes("/auth/me");
+
     if (error.code === "ECONNABORTED" || !error.response) {
       console.warn("Network error or timeout:", error.message);
-    } else if (error.response?.status === 401) {
+    } else if (error.response?.status === 401 && !isMeCheck) {
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }
-    } else {
+    } else if (error.response?.status !== 401) {
       console.error("API Error:", error?.response?.data || error.message);
     }
+
     return Promise.reject(error);
   }
 );
