@@ -1,20 +1,22 @@
-import { useState, useEffect } from 'react';
-import { Pencil, Trash2, Plus, UtensilsCrossed, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Pencil, Trash2, Plus, UtensilsCrossed, X, Upload, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import ConfirmModal from './ConfirmModal';
 
 const CATEGORY_SUGGESTIONS = ['main', 'snack', 'drink', 'side', 'dessert'];
 
-const EMPTY_FORM = { name: '', description: '', price: '', category: 'main', imageUrl: '' };
+const EMPTY_FORM = { name: '', description: '', price: '', category: 'main', imageUrl: '', imagePublicId: '' };
 
 export default function MenuManagement() {
     const [menu, setMenu] = useState([]);
     const [form, setForm] = useState(EMPTY_FORM);
     const [editingId, setEditingId] = useState(null);
     const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [pendingDelete, setPendingDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const fileRef = useRef();
 
     const fetchMenu = async () => {
         try {
@@ -38,12 +40,49 @@ export default function MenuManagement() {
             price: item.price,
             category: item.category,
             imageUrl: item.imageUrl || '',
+            imagePublicId: item.imagePublicId || '',
         });
     };
 
     const cancelEdit = () => {
         setEditingId(null);
         setForm(EMPTY_FORM);
+        if (fileRef.current) fileRef.current.value = '';
+    };
+
+    // Upload picked image (from device gallery) straight to Cloudinary via backend
+    const handleImageUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Max file size is 5MB');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            setUploading(true);
+            const res = await API.post('/menu/upload-image', formData);
+            setForm((prev) => ({
+                ...prev,
+                imageUrl: res.data.url,
+                imagePublicId: res.data.publicId,
+            }));
+            toast.success('Image uploaded');
+        } catch (err) {
+            console.error('Failed to upload image', err);
+            toast.error(err.response?.data?.message || 'Image upload failed');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const removeImage = () => {
+        setForm((prev) => ({ ...prev, imageUrl: '', imagePublicId: '' }));
+        if (fileRef.current) fileRef.current.value = '';
     };
 
     const saveItem = async () => {
@@ -60,6 +99,7 @@ export default function MenuManagement() {
                 price: parseFloat(form.price),
                 category: form.category || 'main',
                 imageUrl: form.imageUrl || null,
+                imagePublicId: form.imagePublicId || null,
             };
 
             if (editingId) {
@@ -158,18 +198,57 @@ export default function MenuManagement() {
                             />
                         </Field>
 
-                        <Field label="Image URL">
-                            <input
-                                value={form.imageUrl}
-                                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                                placeholder="https://…"
-                                className="input"
-                            />
+                        <Field label="Dish Image">
+                            <div className="space-y-2">
+                                {form.imageUrl && (
+                                    <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                                        <img
+                                            src={form.imageUrl}
+                                            alt="Preview"
+                                            className="h-14 w-14 rounded-lg object-cover shrink-0"
+                                        />
+                                        <span className="text-xs text-gray-400 truncate flex-1">Image attached</span>
+                                        <button
+                                            type="button"
+                                            onClick={removeImage}
+                                            className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                                            title="Remove image"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                )}
+
+                                <input
+                                    ref={fileRef}
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    onChange={handleImageUpload}
+                                    className="hidden"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => fileRef.current?.click()}
+                                    disabled={uploading}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-600 hover:border-orange-400 hover:text-orange-500 transition-all disabled:opacity-50"
+                                >
+                                    {uploading ? (
+                                        <>
+                                            <ImageIcon size={15} className="animate-pulse" /> Uploading…
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Upload size={15} />
+                                            {form.imageUrl ? 'Change image' : 'Upload from gallery'}
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </Field>
 
                         <button
                             onClick={saveItem}
-                            disabled={saving}
+                            disabled={saving || uploading}
                             className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm disabled:opacity-50 mt-2"
                         >
                             <Plus size={16} />
