@@ -10,6 +10,7 @@ import KitchenPage from "./pages/KitchenPage";
 import AccountantPage from "./pages/AccountantPage";
 import CustomerPage from "./pages/CustomerPage";
 import OrdersPage from "./pages/OrdersPage";
+import WalletPage from "./pages/WalletPage";
 import ProfilePage from "./pages/ProfilePage";
 
 function LoadingScreen() {
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/home" element={<CustomerPage />} />
         <Route path="/order" element={<Navigate to="/home" replace />} />
         <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/wallet" element={<WalletPage />} />
         <Route path="/profile" element={<ProfilePage />} />
 
         <Route
