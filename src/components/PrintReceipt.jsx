@@ -44,8 +44,7 @@ export default function PrintReceipt({ receipt }) {
             )}
             <div className="text-center mt-2">
                 <p>=====================================</p>
-                <p>Thank You!</p>
-                <p>Visit Again 😊</p>
+                <p>Thank You! Visit Again</p>
                 <p>=====================================</p>
             </div>
         </div>
