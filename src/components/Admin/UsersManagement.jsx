@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, ShieldCheck, Ban, CheckCircle2, RefreshCw } from 'lucide-react';
+import { UserPlus, ShieldCheck, Ban, CheckCircle2, RefreshCw, Users2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import ConfirmModal from './ConfirmModal';
@@ -9,6 +9,12 @@ const ROLE_OPTIONS = [
     { value: 'kitchen', label: 'Kitchen' },
     { value: 'waiter', label: 'Waiter' },
     { value: 'accountant', label: 'Accountant' },
+];
+
+const FILTER_TABS = [
+    { value: 'all', label: 'All Users' },
+    { value: 'staff', label: 'Staff & Admin' },
+    { value: 'customer', label: 'Customers' },
 ];
 
 const EMPTY_FORM = {
@@ -21,6 +27,7 @@ const EMPTY_FORM = {
 
 export default function UsersManagement() {
     const [users, setUsers] = useState([]);
+    const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState(EMPTY_FORM);
     const [creating, setCreating] = useState(false);
@@ -31,7 +38,7 @@ export default function UsersManagement() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await API.get('/auth/users');
+            const res = await API.get('/auth/users/all');
             setUsers(res.data);
         } catch (err) {
             console.error('Failed to fetch users', err);
@@ -47,6 +54,12 @@ export default function UsersManagement() {
     const roleLabel = (u) => (u.isAdmin ? 'Admin' : u.role.charAt(0).toUpperCase() + u.role.slice(1));
 
     const currentRoleValue = (u) => (u.isAdmin ? 'admin' : u.role);
+
+    const visibleUsers = users.filter((u) => {
+        if (filter === 'staff') return u.isAdmin || u.role !== 'customer';
+        if (filter === 'customer') return !u.isAdmin && u.role === 'customer';
+        return true;
+    });
 
     const handleCreate = async () => {
         if (!form.fullName || !form.contact || !form.password) {
@@ -114,7 +127,7 @@ export default function UsersManagement() {
             <div className="flex flex-wrap justify-between items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-black text-gray-800">Manage Users</h2>
-                    <p className="text-sm text-gray-500">Promote staff, change roles, and control account access</p>
+                    <p className="text-sm text-gray-500">Promote customers or staff, change roles, and control account access</p>
                 </div>
                 <button
                     onClick={fetchUsers}
@@ -198,9 +211,28 @@ export default function UsersManagement() {
 
                 {/* Users table */}
                 <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                    <h3 className="text-base font-black text-gray-800 border-b border-gray-100 pb-3 mb-4">
-                        All Staff & Admin Accounts ({users.length})
-                    </h3>
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3 mb-4">
+                        <h3 className="text-base font-black text-gray-800 flex items-center gap-2">
+                            <Users2 size={16} className="text-orange-500" />
+                            {visibleUsers.length} Account{visibleUsers.length !== 1 ? 's' : ''}
+                        </h3>
+                        <div className="flex gap-1.5">
+                            {FILTER_TABS.map((f) => (
+                                <button
+                                    key={f.value}
+                                    onClick={() => setFilter(f.value)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                                        filter === f.value
+                                            ? 'bg-orange-500 text-white'
+                                            : 'bg-gray-100 text-gray-500 hover:text-orange-500'
+                                    }`}
+                                >
+                                    {f.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="overflow-x-auto max-h-[560px] overflow-y-auto">
                         <table className="w-full text-left text-sm">
                             <thead>
@@ -213,19 +245,19 @@ export default function UsersManagement() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 text-gray-600">
-                                {users.length === 0 ? (
+                                {visibleUsers.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="p-8 text-center text-gray-400 font-medium">
-                                            No staff accounts yet
+                                            No accounts found
                                         </td>
                                     </tr>
                                 ) : (
-                                    users.map((u) => (
+                                    visibleUsers.map((u) => (
                                         <tr key={u.id} className="hover:bg-gray-50/70 transition-colors">
                                             <td className="p-3 font-bold text-gray-800">{u.fullName}</td>
                                             <td className="p-3 text-xs text-gray-400">{u.email || u.phone}</td>
                                             <td className="p-3">
-                                                <RoleBadge label={roleLabel(u)} isAdmin={u.isAdmin} />
+                                                <RoleBadge label={roleLabel(u)} isAdmin={u.isAdmin} isCustomer={!u.isAdmin && u.role === 'customer'} />
                                             </td>
                                             <td className="p-3">
                                                 {u.isActive ? (
@@ -250,6 +282,9 @@ export default function UsersManagement() {
                                                         }}
                                                         className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                                                     >
+                                                        {currentRoleValue(u) === 'customer' && (
+                                                            <option value="customer" disabled hidden>Customer</option>
+                                                        )}
                                                         {ROLE_OPTIONS.map((r) => (
                                                             <option key={r.value} value={r.value}>{r.label}</option>
                                                         ))}
@@ -273,7 +308,7 @@ export default function UsersManagement() {
 
             <ConfirmModal
                 open={!!roleChange}
-                title="Change user role?"
+                title={roleChange?.user?.role === 'customer' ? 'Promote this customer?' : 'Change user role?'}
                 description={
                     roleChange
                         ? `Set ${roleChange.user.fullName}'s role to ${ROLE_OPTIONS.find((r) => r.value === roleChange.newRole)?.label}? They'll need to log in again to see the change take effect.`
@@ -334,12 +369,14 @@ function Field({ label, children }) {
     );
 }
 
-function RoleBadge({ label, isAdmin }) {
+function RoleBadge({ label, isAdmin, isCustomer }) {
     return (
         <span
             className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border ${
                 isAdmin
                     ? 'bg-orange-50 text-orange-600 border-orange-200'
+                    : isCustomer
+                    ? 'bg-blue-50 text-blue-600 border-blue-200'
                     : 'bg-gray-100 text-gray-500 border-gray-200'
             }`}
         >
@@ -347,4 +384,4 @@ function RoleBadge({ label, isAdmin }) {
             {label}
         </span>
     );
-}
+                            }
