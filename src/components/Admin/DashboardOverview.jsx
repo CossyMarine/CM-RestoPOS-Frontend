@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Eye, RefreshCw, ShieldAlert, Wallet, ReceiptText } from 'lucide-react';
+import { Eye, RefreshCw, ShieldAlert, Wallet, ReceiptText, Users, TrendingUp } from 'lucide-react';
 import API from '../../api/axios';
 import ViewItemsModal from './ViewItemsModal';
 
 export default function DashboardOverview() {
     const [revenueToday, setRevenueToday] = useState({ totalRevenue: 0, paidReceiptsCount: 0 });
+    const [revenueSummary, setRevenueSummary] = useState({ totalRevenue: 0, totalReceipts: 0 });
+    const [staffCount, setStaffCount] = useState(0);
     const [unpaid, setUnpaid] = useState([]);
     const [paid, setPaid] = useState([]);
     const [voidCount, setVoidCount] = useState(0);
@@ -16,13 +18,17 @@ export default function DashboardOverview() {
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [rev, unpaidRes, paidRes, voidsRes] = await Promise.all([
+            const [rev, summary, staff, unpaidRes, paidRes, voidsRes] = await Promise.all([
                 API.get('/revenue/today'),
+                API.get('/revenue/summary'),
+                API.get('/auth/staff-count'),
                 API.get('/receipts'),
                 API.get('/receipts/paid'),
                 API.get('/void-requests'),
             ]);
             setRevenueToday(rev.data);
+            setRevenueSummary(summary.data);
+            setStaffCount(staff.data.totalStaff || 0);
             setUnpaid(unpaidRes.data);
             setPaid(paidRes.data);
             setVoidCount(voidsRes.data.length);
@@ -61,6 +67,18 @@ export default function DashboardOverview() {
             .reduce((sum, r) => sum + r.subtotal, 0);
     }, [combined, dateFrom, dateTo, revenueToday]);
 
+    const paymentInfo = (r) =>
+        r.status === 'paid'
+            ? {
+                  method: r.paymentMethod,
+                  cashAmount: r.cashAmount,
+                  tillAmount: r.tillAmount,
+                  changeGiven: r.changeGiven,
+                  mpesaReceiptNumber: r.mpesaReceiptNumber,
+                  paidAt: r.paidAt,
+              }
+            : null;
+
     return (
         <div className="space-y-8 bg-gray-50 min-h-screen p-1 text-gray-800">
             <div className="flex flex-wrap justify-between items-center gap-4">
@@ -93,6 +111,26 @@ export default function DashboardOverview() {
                 </div>
             </div>
 
+            {/* All-time overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <MetricCard
+                    icon={TrendingUp}
+                    label="Total Revenue"
+                    value={`KES ${(revenueSummary.totalRevenue || 0).toLocaleString()}`}
+                />
+                <MetricCard
+                    icon={ReceiptText}
+                    label="Total Receipts"
+                    value={(revenueSummary.totalReceipts || 0).toLocaleString()}
+                />
+                <MetricCard
+                    icon={Users}
+                    label="Total Staff"
+                    value={staffCount}
+                />
+            </div>
+
+            {/* Today / filtered */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <MetricCard
                     icon={Wallet}
@@ -170,6 +208,7 @@ export default function DashboardOverview() {
                 subtitle={viewing ? `Table ${viewing.tableNumber} · ${viewing.waiterName || 'No waiter'}` : ''}
                 items={(viewing?.items || []).map((i) => ({ name: i.mealName, qty: i.quantity, price: i.unitPrice }))}
                 total={viewing?.subtotal}
+                payment={viewing ? paymentInfo(viewing) : null}
             />
         </div>
     );
@@ -198,4 +237,4 @@ function StatusPill({ status }) {
             {status}
         </span>
     );
-}
+                }
