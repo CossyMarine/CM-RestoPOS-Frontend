@@ -433,3 +433,102 @@ export default function WalletPage() {
                       <Smartphone size={14} /> STK Push
                     </button>
                     <button
+                      onClick={() => setPayMethod("manual")}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+                        payMethod === "manual" ? "bg-orange-500 text-white" : "bg-stone-50 text-stone-500 border border-stone-200"
+                      }`}
+                    >
+                      <Landmark size={14} /> Till
+                    </button>
+                    {wallet?.canRedeem && (
+                      <button
+                        onClick={() => setPayMethod("reward")}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+                          payMethod === "reward" ? "bg-orange-500 text-white" : "bg-stone-50 text-stone-500 border border-stone-200"
+                        }`}
+                      >
+                        <Gift size={14} /> Reward
+                      </button>
+                    )}
+                  </div>
+
+                  {payMethod !== "reward" && (
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">Amount (KSh)</label>
+                      <input
+                        type="number"
+                        value={payAmount}
+                        onChange={(e) => setPayAmount(e.target.value)}
+                        max={activeBill.balanceDue}
+                        className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-orange-300"
+                      />
+                      <p className="text-[11px] text-stone-400 mt-1">
+                        Full or partial — up to KSh {activeBill.balanceDue.toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+
+                  {payMethod === "stk" && (
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">M-Pesa Phone Number</label>
+                      <input
+                        type="tel"
+                        placeholder="07XXXXXXXX"
+                        value={payPhone}
+                        onChange={(e) => setPayPhone(e.target.value)}
+                        className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-orange-300"
+                      />
+                    </div>
+                  )}
+
+                  {payMethod === "manual" && (
+                    <div className="space-y-3">
+                      {settings?.tillNumber && (
+                        <div className="bg-stone-50 border border-stone-200 rounded-lg p-3 text-sm">
+                          <p className="text-xs text-stone-400">Pay to Till Number</p>
+                          <p className="font-black text-stone-900 text-lg">{settings.tillNumber}</p>
+                          {settings.tillName && <p className="text-xs text-stone-500">{settings.tillName}</p>}
+                        </div>
+                      )}
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 uppercase tracking-wide">
+                          M-Pesa Code or Your Full Name
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. QGH7X8Y1Z or Jane Wanjiru"
+                          value={payReference}
+                          onChange={(e) => setPayReference(e.target.value)}
+                          className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-orange-300"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {payMethod === "reward" && (
+                    <div className="bg-orange-50 border border-orange-100 rounded-lg p-4 text-center">
+                      <CheckCircle2 size={22} className="text-orange-500 mx-auto mb-1" />
+                      <p className="text-sm font-semibold text-stone-800">
+                        Apply up to {wallet.points} pts (KSh {wallet.redeemableKes.toLocaleString()}) to this bill
+                      </p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={payMethod === "stk" ? handlePayStk : payMethod === "manual" ? handlePayManual : handlePayReward}
+                    disabled={submitting}
+                    className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-stone-400 text-white font-bold py-3.5 rounded-xl transition-colors"
+                  >
+                    {submitting ? "Processing…" : "Confirm Payment"}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <BottomNav />
+    </div>
+  );
+              }
