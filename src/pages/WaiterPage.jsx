@@ -16,6 +16,8 @@ import PrintConfirmModal from "../components/Waiter/PrintConfirmModal";
 import VoidReasonModal from "../components/Waiter/VoidReasonModal";
 import BillHistoryPanel from "../components/Waiter/BillHistoryPanel";
 import AddItemsModal from "../components/Waiter/AddItemsModal";
+import ViewBillModal from "../components/Waiter/ViewBillModal";
+import TakeOrderModal from "../components/Waiter/TakeOrderModal";
 import PrintReceipt from "../components/PrintReceipt";
 
 const SOCKET_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/api\/?$/, "");
@@ -56,6 +58,11 @@ export default function WaiterDashboard() {
   const [voidTarget, setVoidTarget] = useState(null);
   const [addItemsTarget, setAddItemsTarget] = useState(null);
   const [addItemsBusy, setAddItemsBusy] = useState(false);
+
+  const [viewTarget, setViewTarget] = useState(null);
+
+  const [takeOrderTarget, setTakeOrderTarget] = useState(null);
+  const [takeOrderBusy, setTakeOrderBusy] = useState(false);
 
   // ---- Initial data ----
   useEffect(() => {
@@ -102,19 +109,33 @@ export default function WaiterDashboard() {
       }
     });
 
+    // Keep Bill Records status in sync the moment a void request is approved elsewhere.
+    socket.on("voidRequest:approved", () => {
+      fetchHistory(historyPage, historySearch);
+    });
+
+    socket.on("receipt:updated", (receipt) => {
+      setBillHistory((prev) => ({
+        ...prev,
+        receipts: prev.receipts.map((r) => (r._id === receipt._id ? { ...r, ...receipt } : r)),
+      }));
+    });
+
     return () => socket.disconnect();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historyPage, historySearch]);
 
   // ---- Bill history ----
+  // Shows ALL bills (every waiter) by default when no waiter is selected;
+  // narrows to a single waiter's history once one is chosen.
   const fetchHistory = useCallback(
     async (page = 1, q = "") => {
-      if (!waiterName) {
-        setBillHistory({ receipts: [], page: 1, totalPages: 1, total: 0 });
-        return;
-      }
       setHistoryLoading(true);
       try {
-        const res = await API.get(`/receipts/waiter/${encodeURIComponent(waiterName)}/history`, {
+        const url = waiterName
+          ? `/receipts/waiter/${encodeURIComponent(waiterName)}/history`
+          : `/receipts/history`;
+        const res = await API.get(url, {
           params: { page, limit: 4, q: q || undefined },
         });
         setBillHistory(res.data);
@@ -269,19 +290,35 @@ export default function WaiterDashboard() {
     }
   };
 
-  // ---- Claim an online order ----
-  const takeOnlineOrder = async (order) => {
-    if (!waiterName) {
-      toast.warning("Select your name from Assigned Server first");
-      return;
-    }
+  // ---- View a bill's item list ----
+  const openViewBill = async (bill) => {
     try {
-      await API.patch(`/orders/${order._id}/assign`, { waiterName });
-      setOnlineOrders((prev) => prev.filter((o) => o._id !== order._id));
-      toast.success(`Order for Table ${order.tableNumber} assigned to you`);
+      const res = await API.get(`/receipts/${bill._id}`);
+      setViewTarget(res.data);
+    } catch {
+      toast.error("Could not load bill");
+    }
+  };
+
+  // ---- Claim an online order (opens waiter-select modal) ----
+  const openTakeOrder = (order) => {
+    setTakeOrderTarget(order);
+  };
+
+  const confirmTakeOrder = async (selectedWaiterName) => {
+    if (!takeOrderTarget) return;
+    setTakeOrderBusy(true);
+    try {
+      await API.patch(`/orders/${takeOrderTarget._id}/assign`, { waiterName: selectedWaiterName });
+      setOnlineOrders((prev) => prev.filter((o) => o._id !== takeOrderTarget._id));
+      toast.success(`Order for Table ${takeOrderTarget.tableNumber} assigned to ${selectedWaiterName}`);
+      setTakeOrderTarget(null);
+      fetchHistory(historyPage, historySearch);
       setActiveTab("history");
     } catch (err) {
       toast.error(err.response?.data?.message || "Could not claim this order");
+    } finally {
+      setTakeOrderBusy(false);
     }
   };
 
@@ -355,7 +392,7 @@ export default function WaiterDashboard() {
       )}
 
       {activeTab === "online" && (
-        <OnlineOrdersPanel orders={onlineOrders} onTake={takeOnlineOrder} />
+        <OnlineOrdersPanel orders={onlineOrders} menu={menu} onTake={openTakeOrder} />
       )}
 
       {activeTab === "history" && (
@@ -366,6 +403,7 @@ export default function WaiterDashboard() {
           total={billHistory.total}
           loading={historyLoading}
           search={historySearch}
+          showWaiterColumn={!waiterName}
           onSearchChange={(v) => {
             setHistorySearch(v);
             setHistoryPage(1);
@@ -374,6 +412,7 @@ export default function WaiterDashboard() {
           onPrint={printBill}
           onAddItems={openAddItems}
           onRequestVoid={setVoidTarget}
+          onView={openViewBill}
         />
       )}
 
@@ -394,6 +433,16 @@ export default function WaiterDashboard() {
         onSubmit={submitAddItems}
       />
 
+      <ViewBillModal bill={viewTarget} onClose={() => setViewTarget(null)} />
+
+      <TakeOrderModal
+        order={takeOrderTarget}
+        waiters={waiters}
+        busy={takeOrderBusy}
+        onCancel={() => setTakeOrderTarget(null)}
+        onConfirm={confirmTakeOrder}
+      />
+
       <PrintReceipt
         receipt={
           printTarget && {
@@ -408,4 +457,4 @@ export default function WaiterDashboard() {
       />
     </div>
   );
-                      }
+                                }
