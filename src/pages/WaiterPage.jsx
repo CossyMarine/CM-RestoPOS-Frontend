@@ -8,6 +8,7 @@ import { useAuth } from "../hooks/useAuth";
 import WaiterHeader from "../components/Waiter/WaiterHeader";
 import StationConfig from "../components/Waiter/StationConfig";
 import OnlineOrdersBar from "../components/Waiter/OnlineOrdersBar";
+import OnlineOrdersPanel from "../components/Waiter/OnlineOrdersPanel";
 import MenuSearchBar from "../components/Waiter/MenuSearchBar";
 import MenuGrid from "../components/Waiter/MenuGrid";
 import CartPanel from "../components/Waiter/CartPanel";
@@ -41,7 +42,6 @@ export default function WaiterDashboard() {
   const [cart, setCart] = useState([]);
 
   const [onlineOrders, setOnlineOrders] = useState([]);
-  const [showAllOnline, setShowAllOnline] = useState(false);
   const [unseenCount, setUnseenCount] = useState(0);
 
   const [billHistory, setBillHistory] = useState({ receipts: [], page: 1, totalPages: 1, total: 0 });
@@ -127,13 +127,15 @@ export default function WaiterDashboard() {
     [waiterName]
   );
 
+  // Always keep bill history (and therefore the Bill Records count) in sync,
+  // regardless of which tab is active — not just when viewing "history".
   useEffect(() => {
-    if (activeTab === "history") fetchHistory(historyPage, historySearch);
-  }, [activeTab, historyPage, historySearch, fetchHistory]);
+    fetchHistory(historyPage, historySearch);
+  }, [historyPage, historySearch, fetchHistory]);
 
   useEffect(() => {
     setHistoryPage(1);
-    if (activeTab === "history") fetchHistory(1, historySearch);
+    fetchHistory(1, historySearch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [waiterName]);
 
@@ -220,7 +222,9 @@ export default function WaiterDashboard() {
       toast.success(`Order submitted to kitchen — ${receipt.billId}`);
       runPrint(receipt);
 
-      if (activeTab === "history") fetchHistory(historyPage, historySearch);
+      // Refresh bill history/count unconditionally so "Bill Records" updates
+      // even while the waiter stays on the POS Desk tab.
+      fetchHistory(historyPage, historySearch);
     } catch (err) {
       toast.error(err.response?.data?.message || "Could not submit order");
     } finally {
@@ -301,22 +305,20 @@ export default function WaiterDashboard() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         billCount={billHistory.total}
+        onlineCount={onlineOrders.length}
         unseenCount={unseenCount}
         onBellClick={() => {
           setUnseenCount(0);
-          setShowAllOnline(true);
+          setActiveTab("online");
         }}
         onLogout={handleLogout}
       />
 
-      <OnlineOrdersBar
-        orders={onlineOrders}
-        onTake={takeOnlineOrder}
-        showAll={showAllOnline}
-        onToggleShowAll={() => setShowAllOnline((s) => !s)}
-      />
+      {activeTab === "dashboard" && (
+        <OnlineOrdersBar orders={onlineOrders} onView={() => setActiveTab("online")} />
+      )}
 
-      {activeTab === "dashboard" ? (
+      {activeTab === "dashboard" && (
         <div className="max-w-7xl mx-auto px-5 mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <StationConfig
@@ -350,7 +352,13 @@ export default function WaiterDashboard() {
             onSubmit={handlePrintSubmit}
           />
         </div>
-      ) : (
+      )}
+
+      {activeTab === "online" && (
+        <OnlineOrdersPanel orders={onlineOrders} onTake={takeOnlineOrder} />
+      )}
+
+      {activeTab === "history" && (
         <BillHistoryPanel
           receipts={billHistory.receipts}
           page={billHistory.page}
@@ -400,4 +408,4 @@ export default function WaiterDashboard() {
       />
     </div>
   );
-          }
+                      }
