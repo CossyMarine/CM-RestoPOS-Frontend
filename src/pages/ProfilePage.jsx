@@ -13,7 +13,11 @@ import {
   UserPlus,
   LogIn,
   LayoutDashboard,
-  ChefHat
+  ChefHat,
+  Award,
+  Coins,
+  Sparkles,
+  Zap
 } from "lucide-react";
 import BottomNav from "../components/BottomNav";
 import { useAuth } from "../hooks/useAuth";
@@ -89,6 +93,11 @@ export default function ProfilePage() {
   const joined = formatJoinDate(user.createdAt);
   const isWaiter = user.role?.toLowerCase() === "waiter" || user.isStaff;
 
+  // Mock Loyalty/Performance Data — pulls dynamically in complete builds
+  const loyaltyPoints = user.loyaltyPoints || 340;
+  const targetPoints = 500;
+  const progressPercent = Math.min((loyaltyPoints / targetPoints) * 100, 100);
+
   // Build options list contextually depending on active role type
   const options = [
     ...(isWaiter 
@@ -153,6 +162,75 @@ export default function ProfilePage() {
           
           {joined && <p className="text-xs text-stone-400 mt-2.5">Member since {joined}</p>}
         </div>
+
+        {/* REWARDS CARD */}
+        {!isWaiter ? (
+          /* Customer Loyalty Variant */
+          <div className="bg-gradient-to-br from-stone-900 via-stone-800 to-neutral-900 text-white rounded-3xl p-6 shadow-md relative overflow-hidden border border-stone-800">
+            <div className="absolute -right-6 -bottom-6 text-stone-700/20 pointer-events-none transform rotate-12">
+              <Award size={140} />
+            </div>
+            
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <span className="text-[10px] uppercase bg-orange-500 text-white px-2 py-0.5 rounded-md font-black tracking-widest flex items-center gap-1 w-fit">
+                  <Sparkles size={10} /> RestoPass Elite
+                </span>
+                <p className="text-xs text-stone-400 mt-1.5 font-medium">Available Balance</p>
+                <h3 className="text-2xl font-black tracking-tight mt-0.5 flex items-baseline gap-1.5 text-orange-400">
+                  {loyaltyPoints} <span className="text-xs font-bold text-stone-300 uppercase tracking-wider">Points</span>
+                </h3>
+              </div>
+              <div className="bg-stone-800/80 p-2 rounded-xl border border-stone-700/50 text-orange-400">
+                <Coins size={20} />
+              </div>
+            </div>
+
+            <div className="space-y-2 relative z-10">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-stone-300">Next Reward Progress</span>
+                <span className="text-stone-400">{loyaltyPoints} / {targetPoints} pts</span>
+              </div>
+              <div className="w-full bg-stone-700 rounded-full h-2 overflow-hidden p-0.5 border border-stone-800">
+                <div 
+                  className="bg-gradient-to-r from-orange-500 to-amber-400 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-stone-400 font-medium pt-1">
+                Earn {targetPoints - loyaltyPoints} more points to unlock a KSh 500 dining voucher!
+              </p>
+            </div>
+          </div>
+        ) : (
+          /* Staff/Waiter Metrics Variant */
+          <div className="bg-gradient-to-br from-orange-600 to-amber-500 text-white rounded-3xl p-5 shadow-md relative overflow-hidden">
+            <div className="absolute -right-6 -bottom-6 text-white/10 pointer-events-none transform rotate-12">
+              <Zap size={130} />
+            </div>
+
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-sm font-black tracking-wide uppercase text-white/90">Shift Performance</h3>
+                <p className="text-[11px] text-orange-100">Live operational ledger logs</p>
+              </div>
+              <span className="bg-white/20 text-white text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider backdrop-blur-xs">
+                Active Tier
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 relative z-10 pt-1">
+              <div className="bg-white/10 rounded-2xl p-3 border border-white/10 backdrop-blur-xs">
+                <p className="text-[10px] uppercase tracking-wider text-orange-100 font-bold">Bills Printed</p>
+                <p className="text-xl font-black mt-0.5">14 <span className="text-xs font-medium text-orange-200">today</span></p>
+              </div>
+              <div className="bg-white/10 rounded-2xl p-3 border border-white/10 backdrop-blur-xs">
+                <p className="text-[10px] uppercase tracking-wider text-orange-100 font-bold">Void Ratio</p>
+                <p className="text-xl font-black mt-0.5">0.0% <span className="text-xs font-medium text-emerald-200">Perfect</span></p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* CONTACT INFO CARD */}
         <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 space-y-3">
