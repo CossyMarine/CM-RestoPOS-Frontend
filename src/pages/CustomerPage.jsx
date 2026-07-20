@@ -2,8 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { io } from "socket.io-client";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
-import { UtensilsCrossed, Plus, Minus, X, ShoppingCart, Clock, User, Heart } from "lucide-react";
-import useGuestSession from "../hooks/useGuestSession";
+import { UtensilsCrossed, Plus, Minus, X, ShoppingCart, Clock, User, Heart, MessageCircle } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import API from "../api/axios";
 
@@ -13,11 +12,10 @@ const SOCKET_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000").rep
 
 const STATUS_STYLE = {
   pending:   "bg-amber-100 text-amber-700",
-  serving:   "bg-blue-100 text-blue-700",
   completed: "bg-green-100 text-green-700",
   cancelled: "bg-red-100 text-red-700",
 };
-const STATUS_LABEL = { pending: "Pending", serving: "Serving", completed: "Delivered", cancelled: "Cancelled" };
+const STATUS_LABEL = { pending: "Pending", completed: "Delivered", cancelled: "Cancelled" };
 
 const FAVORITES_KEY = "customer_favorite_meals";
 
@@ -49,9 +47,26 @@ function MenuImage({ src, alt }) {
   );
 }
 
+// Bouncing WhatsApp icon — number is set by the admin in Settings.
+function WhatsAppBubble({ number }) {
+  if (!number) return null;
+  const cleaned = number.replace(/[^\d+]/g, "");
+  return (
+    <a
+      href={`https://wa.me/${cleaned.replace(/^\+/, "")}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Chat with us on WhatsApp"
+      className="fixed right-4 bottom-24 z-40 w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center shadow-lg animate-bounce"
+    >
+      <MessageCircle size={26} />
+    </a>
+  );
+}
+
 export default function CustomerPage() {
-  const { sessionId, tableNumber, setTableNumber } = useGuestSession();
   const { user } = useAuth();
+  const [tableNumber, setTableNumber] = useState(() => localStorage.getItem("table_number") || "");
   const [menu, setMenu] = useState([]);
   const [category, setCategory] = useState("all");
   const [cart, setCart] = useState([]);
@@ -60,6 +75,12 @@ export default function CustomerPage() {
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState(getStoredFavorites);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState(null);
+
+  const updateTableNumber = (value) => {
+    setTableNumber(value);
+    localStorage.setItem("table_number", value);
+  };
 
   useEffect(() => {
     API.get("/menu")
@@ -69,27 +90,40 @@ export default function CustomerPage() {
   }, []);
 
   useEffect(() => {
-    API.get("/orders/customer", { params: { sessionId } })
-      .then((res) => setOrders(res.data))
+    API.get("/settings/public")
+      .then((res) => setWhatsappNumber(res.data.whatsappNumber))
       .catch(() => {});
-  }, [sessionId]);
+  }, []);
+
+  const loadOrders = () => {
+    if (!user) {
+      setOrders([]);
+      return;
+    }
+    API.get("/orders/customer", { params: { limit: 5 } })
+      .then((res) => setOrders(res.data.orders))
+      .catch(() => {});
+  };
 
   useEffect(() => {
+    loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
     const socket = io(SOCKET_URL);
     socket.on("order:created", (payload) => {
-      if (payload.order?.guestSessionId === sessionId) {
-        API.get("/orders/customer", { params: { sessionId } })
-          .then((res) => setOrders(res.data))
-          .catch(() => {});
-      }
+      if (String(payload.order?.customer) === String(user.id)) loadOrders();
     });
     socket.on("order:updated", (order) => {
-      if (order.guestSessionId === sessionId) {
+      if (String(order.customer) === String(user.id)) {
         setOrders((prev) => prev.map((o) => (o._id === order._id ? { ...o, status: order.status } : o)));
       }
     });
     return () => socket.disconnect();
-  }, [sessionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const categories = useMemo(() => {
     const set = new Set(menu.map((m) => m.category));
@@ -109,7 +143,6 @@ export default function CustomerPage() {
     });
   };
 
-  // Favorited items always come first, original order preserved otherwise.
   const visibleMenu = useMemo(() => {
     const base = category === "all" ? menu : menu.filter((m) => m.category === category);
     return [...base].sort((a, b) => {
@@ -122,6 +155,10 @@ export default function CustomerPage() {
   const cartTotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 
   const addToCart = (item) => {
+    if (!user) {
+      toast.error("Sign in to place an order");
+      return;
+    }
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item._id);
       if (existing) {
@@ -143,6 +180,10 @@ export default function CustomerPage() {
   const removeFromCart = (id) => setCart((prev) => prev.filter((i) => i.id !== id));
 
   const handlePlaceOrder = async () => {
+    if (!user) {
+      toast.error("Sign in to place an order");
+      return;
+    }
     if (!tableNumber) {
       toast.error("Enter your table number first");
       return;
@@ -159,18 +200,11 @@ export default function CustomerPage() {
         mealName: i.name,
         quantity: i.qty,
         unitPrice: i.price,
-        lineTotal: i.qty * i.price,
       }));
-      await API.post("/orders/customer", {
-        tableNumber,
-        items,
-        guestSessionId: sessionId,
-        customerName: user?.fullName || undefined,
-      });
+      const res = await API.post("/orders/customer", { tableNumber, items });
       setCart([]);
-      const res = await API.get("/orders/customer", { params: { sessionId } });
-      setOrders(res.data);
-      toast.success("Order placed!");
+      loadOrders();
+      toast.success(`Order placed! Bill ${res.data.billId}`);
     } catch (err) {
       toast.error(err.response?.data?.message || "Couldn't place your order");
     } finally {
@@ -181,7 +215,7 @@ export default function CustomerPage() {
   const handleConfirmCancel = async () => {
     if (!cancelTarget) return;
     try {
-      await API.patch(`/orders/customer/${cancelTarget}/cancel`, { sessionId });
+      await API.patch(`/orders/customer/${cancelTarget}/cancel`);
       setOrders((prev) => prev.map((o) => (o._id === cancelTarget ? { ...o, status: "cancelled" } : o)));
       toast.success("Order cancelled");
     } catch (err) {
@@ -209,7 +243,7 @@ export default function CustomerPage() {
               inputMode="numeric"
               placeholder="Table No."
               value={tableNumber}
-              onChange={(e) => setTableNumber(e.target.value)}
+              onChange={(e) => updateTableNumber(e.target.value)}
               className="w-28 border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
             />
 
@@ -223,6 +257,17 @@ export default function CustomerPage() {
           </div>
         </div>
       </header>
+
+      {!user && (
+        <div className="max-w-6xl mx-auto px-5 mt-4">
+          <div className="bg-orange-50 border border-orange-100 text-orange-700 text-sm font-semibold rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+            <span>Sign in to place an order and track it here.</span>
+            <Link to="/login" state={{ from: "/home" }} className="underline shrink-0">
+              Sign in
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Category filter */}
       <div className="max-w-6xl mx-auto px-5 mt-5 flex gap-2 overflow-x-auto">
@@ -240,7 +285,6 @@ export default function CustomerPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-5 mt-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Menu grid — locked to 2 columns, scrolls independently so the cart stays visible */}
         <div className="lg:col-span-2">
           <div className="grid grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto pr-1">
             {loading && <p className="text-stone-400 text-sm col-span-full">Loading menu…</p>}
@@ -318,42 +362,47 @@ export default function CustomerPage() {
             disabled={isPlacingOrder}
             className="mt-4 w-full bg-stone-900 hover:bg-stone-700 disabled:bg-stone-400 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
           >
-            {isPlacingOrder ? "Placing order…" : "Place Order"}
+            {isPlacingOrder ? "Placing order…" : user ? "Place Order" : "Sign in to Order"}
           </button>
         </div>
       </div>
 
       {/* Recent orders */}
-      <div className="max-w-6xl mx-auto px-5 mt-10">
-        <h2 className="font-black text-stone-900 flex items-center gap-2 mb-3">
-          <Clock size={18} className="text-orange-500" /> Recent Orders
-        </h2>
-        <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100">
-          {orders.length === 0 && <p className="p-4 text-sm text-stone-400">No orders yet.</p>}
-          {orders.map((o) => (
-            <div key={o._id} className="p-4 flex items-center justify-between text-sm">
-              <div>
-                <p className="font-bold text-stone-900">{o.billId || `Order #${o._id.slice(-6)}`}</p>
-                <p className="text-xs text-stone-400">{new Date(o.createdAt).toLocaleString()}</p>
+      {user && (
+        <div className="max-w-6xl mx-auto px-5 mt-10">
+          <h2 className="font-black text-stone-900 flex items-center gap-2 mb-3">
+            <Clock size={18} className="text-orange-500" /> Recent Orders
+          </h2>
+          <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100">
+            {orders.length === 0 && <p className="p-4 text-sm text-stone-400">No orders yet.</p>}
+            {orders.map((o) => (
+              <div key={o._id} className="p-4 flex items-center justify-between text-sm">
+                <div>
+                  <p className="font-bold text-stone-900">{o.billId || `Order #${o._id.slice(-6)}`}</p>
+                  <p className="text-xs text-stone-400">{new Date(o.createdAt).toLocaleString()}</p>
+                </div>
+                <div className="text-right space-y-1">
+                  <p className="font-bold text-stone-900">KSh {Number(o.subtotal).toLocaleString()}</p>
+                  <span className={`text-xs px-3 py-1 rounded-full font-semibold ${STATUS_STYLE[o.status] || "bg-stone-100 text-stone-600"}`}>
+                    {STATUS_LABEL[o.status] || o.status}
+                  </span>
+                  {o.status === "pending" && (
+                    <button
+                      onClick={() => setCancelTarget(o._id)}
+                      className="block text-xs text-red-600 font-semibold ml-auto"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="text-right space-y-1">
-                <p className="font-bold text-stone-900">KSh {Number(o.subtotal).toLocaleString()}</p>
-                <span className={`text-xs px-3 py-1 rounded-full font-semibold ${STATUS_STYLE[o.status] || "bg-stone-100 text-stone-600"}`}>
-                  {STATUS_LABEL[o.status] || o.status}
-                </span>
-                {o.status === "pending" && (
-                  <button
-                    onClick={() => setCancelTarget(o._id)}
-                    className="block text-xs text-red-600 font-semibold ml-auto"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <Link to="/orders" className="block text-center text-sm font-bold text-orange-500 mt-3">
+            View all orders →
+          </Link>
         </div>
-      </div>
+      )}
 
       {/* Cancel confirm modal */}
       {cancelTarget && (
@@ -372,7 +421,9 @@ export default function CustomerPage() {
           </div>
         </div>
       )}
+
+      <WhatsAppBubble number={whatsappNumber} />
       <BottomNav />
     </div>
   );
-                                                                               }
+            }
