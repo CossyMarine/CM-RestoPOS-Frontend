@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import {
-    Eye, RefreshCw, Wallet, Smartphone, Layers, Search,
-    ChevronLeft, ChevronRight, Loader2, CheckCircle2, XCircle,
+    Eye, RefreshCw, Wallet, Smartphone, Layers, Landmark, Search,
+    ChevronLeft, ChevronRight, Loader2, CheckCircle2, XCircle, Gift,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
@@ -30,15 +30,26 @@ export default function OrdersLedger() {
 
     // ---- Payment modal ----
     const [selected, setSelected] = useState(null);
-    const [paymentMethod, setPaymentMethod] = useState(''); // 'cash' | 'till' | 'both'
+    const [paymentMethod, setPaymentMethod] = useState(''); // 'cash' | 'prompt' | 'both' | 'till'
     const [amountPaid, setAmountPaid] = useState('');
     const [cashPortion, setCashPortion] = useState('');
     const [mpesaPhone, setMpesaPhone] = useState('');
+    const [tillAmount, setTillAmount] = useState('');
+    const [tillReference, setTillReference] = useState('');
     const [processing, setProcessing] = useState(false);
     const [mpesaState, setMpesaState] = useState('idle'); // idle | sending | pending | success | failed
     const [mpesaMessage, setMpesaMessage] = useState('');
     const pollTimer = useRef(null);
     const pollAttempts = useRef(0);
+
+    // ---- Add-reward-before-confirming ----
+    const [addReward, setAddReward] = useState(false);
+    const [rewardIdentifier, setRewardIdentifier] = useState('');
+
+    // ---- Pay-with-customer-reward (separate action) ----
+    const [rewardPayTarget, setRewardPayTarget] = useState(null); // receipt
+    const [rewardPayIdentifier, setRewardPayIdentifier] = useState('');
+    const [rewardPayProcessing, setRewardPayProcessing] = useState(false);
 
     // ---- Quick lists (unpaid/paid tabs + tab counts) ----
     const fetchData = useCallback(async () => {
@@ -89,7 +100,6 @@ export default function OrdersLedger() {
         fetchSummary();
     }, [fetchData, fetchSummary]);
 
-    // Debounced search/date-filter fetch for the "All" tab
     useEffect(() => {
         if (tab !== 'all') return;
         const t = setTimeout(() => fetchAllReceipts(1), 350);
@@ -97,31 +107,21 @@ export default function OrdersLedger() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab, search, dateFrom, dateTo]);
 
-    // Real-time updates
     useEffect(() => {
         const socket = io(SOCKET_URL);
-
         socket.on('receipt:paid', () => {
             fetchData();
             fetchSummary();
             if (tab === 'all') fetchAllReceipts(allPage);
         });
-
-        socket.on('mpesa:result', (payload) => {
-            setSelected((current) => {
-                if (!current || current.mpesaCheckoutRequestId !== payload.checkoutRequestId) {
-                    // fall back to matching on whatever's currently tracked in state below
-                    return current;
-                }
-                return current;
-            });
+        socket.on('receipt:updated', () => {
+            fetchData();
+            if (tab === 'all') fetchAllReceipts(allPage);
         });
-
         return () => socket.disconnect();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Cleanup poll timer on unmount
     useEffect(() => () => { if (pollTimer.current) clearInterval(pollTimer.current); }, []);
 
     // ---- Payment flow ----
@@ -135,8 +135,12 @@ export default function OrdersLedger() {
         setAmountPaid('');
         setCashPortion('');
         setMpesaPhone('');
+        setTillAmount('');
+        setTillReference('');
         setMpesaState('idle');
         setMpesaMessage('');
+        setAddReward(false);
+        setRewardIdentifier('');
     };
 
     const refreshAfterPayment = () => {
@@ -145,15 +149,33 @@ export default function OrdersLedger() {
         if (tab === 'all') fetchAllReceipts(allPage);
     };
 
+    const balanceDue = (r) => Number((r.subtotal - (r.amountPaid || 0)).toFixed(2));
+
+    // After ANY successful payment, optionally credit the reward program
+    const maybeCreditReward = async (amountJustPaid) => {
+        if (!addReward || !rewardIdentifier.trim()) return;
+        try {
+            const res = await API.post('/wallet/admin/add-reward', {
+                identifier: rewardIdentifier.trim(),
+                amountSpent: amountJustPaid,
+            });
+            toast.success(res.data.message);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not credit reward points');
+        }
+    };
+
     const handleCashPay = async () => {
+        const due = balanceDue(selected);
         const received = parseFloat(amountPaid);
-        if (isNaN(received) || received < selected.subtotal) {
-            toast.error('Amount received cannot be less than the bill total');
+        if (isNaN(received) || received < due) {
+            toast.error('Amount received cannot be less than the balance due');
             return;
         }
         setProcessing(true);
         try {
             await API.patch(`/receipts/${selected._id}/pay`, { amountPaid: received });
+            await maybeCreditReward(due);
             toast.success('Payment recorded');
             resetPaymentState();
             refreshAfterPayment();
@@ -164,7 +186,36 @@ export default function OrdersLedger() {
         setProcessing(false);
     };
 
-    const startPolling = (receiptId) => {
+    const handleTillPay = async () => {
+        const due = balanceDue(selected);
+        const amt = parseFloat(tillAmount);
+        if (isNaN(amt) || amt <= 0 || amt > due) {
+            toast.error(`Enter an amount between 1 and ${due}`);
+            return;
+        }
+        if (!tillReference.trim()) {
+            toast.error("Enter the M-Pesa code or the customer's full name");
+            return;
+        }
+        setProcessing(true);
+        try {
+            await API.post('/wallet/pay/manual', {
+                receiptId: selected._id,
+                amount: amt,
+                reference: tillReference.trim(),
+            });
+            await maybeCreditReward(amt);
+            toast.success('Payment recorded');
+            resetPaymentState();
+            refreshAfterPayment();
+        } catch (err) {
+            console.error('Till payment failed', err);
+            toast.error(err.response?.data?.message || 'Payment failed');
+        }
+        setProcessing(false);
+    };
+
+    const startPolling = (receiptId, amountBeingPaid) => {
         if (pollTimer.current) clearInterval(pollTimer.current);
         pollAttempts.current = 0;
 
@@ -176,6 +227,7 @@ export default function OrdersLedger() {
                     clearInterval(pollTimer.current);
                     setMpesaState('success');
                     toast.success('M-Pesa payment received');
+                    await maybeCreditReward(amountBeingPaid);
                     refreshAfterPayment();
                     setTimeout(resetPaymentState, 1200);
                 } else if (res.data.status === 'failed') {
@@ -187,7 +239,7 @@ export default function OrdersLedger() {
                 console.error('Status check failed', err);
             }
 
-            if (pollAttempts.current >= 30) { // ~2 minutes at 4s
+            if (pollAttempts.current >= 30) {
                 clearInterval(pollTimer.current);
                 setMpesaState((current) => {
                     if (current === 'pending') {
@@ -205,11 +257,12 @@ export default function OrdersLedger() {
             toast.error('Enter the M-Pesa phone number');
             return;
         }
+        const due = balanceDue(selected);
         let cashAmount = 0;
         if (paymentMethod === 'both') {
             cashAmount = parseFloat(cashPortion);
-            if (isNaN(cashAmount) || cashAmount <= 0 || cashAmount >= selected.subtotal) {
-                toast.error('Cash amount must be more than 0 and less than the bill total');
+            if (isNaN(cashAmount) || cashAmount <= 0 || cashAmount >= due) {
+                toast.error('Cash amount must be more than 0 and less than the balance due');
                 return;
             }
         }
@@ -223,7 +276,7 @@ export default function OrdersLedger() {
             });
             setMpesaState('pending');
             setMpesaMessage(res.data.message || 'STK push sent. Ask the customer to enter their M-Pesa PIN.');
-            startPolling(selected._id);
+            startPolling(selected._id, due);
         } catch (err) {
             console.error('STK push failed', err);
             setMpesaState('failed');
@@ -241,24 +294,49 @@ export default function OrdersLedger() {
         setMpesaMessage('');
     };
 
+    const due = selected ? balanceDue(selected) : 0;
+
     const tillPortion = selected
         ? paymentMethod === 'both'
-            ? Math.max(selected.subtotal - (parseFloat(cashPortion) || 0), 0)
-            : selected.subtotal
+            ? Math.max(due - (parseFloat(cashPortion) || 0), 0)
+            : due
         : 0;
 
     const cashChange = selected && paymentMethod === 'cash' && amountPaid
-        ? parseFloat(amountPaid) - selected.subtotal
+        ? parseFloat(amountPaid) - due
         : null;
+
+    // ---- Pay with customer reward ----
+    const handlePayWithReward = async () => {
+        if (!rewardPayIdentifier.trim()) {
+            toast.error("Enter the customer's registered email or phone");
+            return;
+        }
+        setRewardPayProcessing(true);
+        try {
+            const res = await API.post('/wallet/admin/pay-with-reward', {
+                identifier: rewardPayIdentifier.trim(),
+                receiptId: rewardPayTarget._id,
+            });
+            toast.success(res.data.message);
+            setRewardPayTarget(null);
+            setRewardPayIdentifier('');
+            refreshAfterPayment();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not redeem points');
+        }
+        setRewardPayProcessing(false);
+    };
 
     // ---- Display helpers ----
 
     const paymentInfo = (r) =>
-        r.status === 'paid'
+        r.status === 'paid' || r.status === 'partial'
             ? {
                   method: r.paymentMethod,
                   cashAmount: r.cashAmount,
                   tillAmount: r.tillAmount,
+                  amountPaid: r.amountPaid,
                   changeGiven: r.changeGiven,
                   mpesaReceiptNumber: r.mpesaReceiptNumber,
                   paidAt: r.paidAt,
@@ -268,6 +346,7 @@ export default function OrdersLedger() {
     const rowHighlight = (status) => {
         if (status === 'paid') return 'bg-emerald-50/40 hover:bg-emerald-50/70';
         if (status === 'voided') return 'bg-red-50/40 hover:bg-red-50/70';
+        if (status === 'partial') return 'bg-blue-50/40 hover:bg-blue-50/70';
         return 'bg-amber-50/40 hover:bg-amber-50/70';
     };
 
@@ -368,6 +447,7 @@ export default function OrdersLedger() {
                                 <th className="p-3">Table</th>
                                 <th className="p-3">Waiter</th>
                                 <th className="p-3">Amount</th>
+                                <th className="p-3">Balance Due</th>
                                 <th className="p-3">Date</th>
                                 {tab === 'all' && <th className="p-3">Status</th>}
                                 <th className="p-3 text-right">Actions</th>
@@ -376,13 +456,13 @@ export default function OrdersLedger() {
                         <tbody className="divide-y divide-gray-100 text-gray-600">
                             {(tab === 'all' ? allLoading : loading) ? (
                                 <tr>
-                                    <td colSpan={7} className="p-6 text-center text-gray-400 font-medium">
+                                    <td colSpan={8} className="p-6 text-center text-gray-400 font-medium">
                                         Loading…
                                     </td>
                                 </tr>
                             ) : rows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="p-6 text-center text-gray-400 font-medium">
+                                    <td colSpan={8} className="p-6 text-center text-gray-400 font-medium">
                                         No {tab === 'all' ? '' : tab} receipts
                                     </td>
                                 </tr>
@@ -393,6 +473,9 @@ export default function OrdersLedger() {
                                         <td className="p-3 font-semibold text-gray-800">Table {r.tableNumber}</td>
                                         <td className="p-3 font-medium">{r.waiterName || '—'}</td>
                                         <td className="p-3 font-bold text-gray-800">KES {r.subtotal.toLocaleString()}</td>
+                                        <td className="p-3 font-semibold text-gray-600">
+                                            KES {balanceDue(r).toLocaleString()}
+                                        </td>
                                         <td className="p-3 text-xs text-gray-400">
                                             {new Date(r.createdAt).toLocaleString()}
                                         </td>
@@ -408,13 +491,21 @@ export default function OrdersLedger() {
                                             >
                                                 <Eye size={14} /> View
                                             </button>
-                                            {r.status === 'unpaid' && (
-                                                <button
-                                                    onClick={() => setSelected(r)}
-                                                    className="text-emerald-600 hover:text-emerald-700 text-xs font-bold transition-colors"
-                                                >
-                                                    Pay
-                                                </button>
+                                            {['unpaid', 'partial'].includes(r.status) && (
+                                                <>
+                                                    <button
+                                                        onClick={() => setSelected(r)}
+                                                        className="text-emerald-600 hover:text-emerald-700 text-xs font-bold transition-colors"
+                                                    >
+                                                        Pay
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setRewardPayTarget(r)}
+                                                        className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700 text-xs font-bold transition-colors"
+                                                    >
+                                                        <Gift size={13} /> Reward
+                                                    </button>
+                                                </>
                                             )}
                                         </td>
                                     </tr>
@@ -457,24 +548,34 @@ export default function OrdersLedger() {
                 payment={viewing ? paymentInfo(viewing) : null}
             />
 
+            {/* ---- Process Payment modal ---- */}
             {selected && (
                 <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs flex items-center justify-center z-50 px-4">
-                    <div className="bg-white border border-gray-200 rounded-2xl p-8 w-full max-w-md shadow-xl animate-in fade-in zoom-in-95 duration-150">
+                    <div className="bg-white border border-gray-200 rounded-2xl p-8 w-full max-w-md shadow-xl animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
                         <h3 className="text-xl font-black text-gray-800 mb-2">Process Payment</h3>
                         <p className="text-gray-400 text-sm mb-6">
                             {selected.billId} · Table {selected.tableNumber}
+                            {selected.status === 'partial' && (
+                                <span className="ml-2 text-blue-600 font-bold">· Partially paid</span>
+                            )}
                         </p>
 
-                        <div className="text-3xl font-black text-orange-500 mb-6">
-                            KES {selected.subtotal.toLocaleString()}
+                        <div className="mb-1 text-3xl font-black text-orange-500">
+                            KES {due.toLocaleString()}
                         </div>
+                        {selected.amountPaid > 0 && (
+                            <p className="text-xs text-gray-400 mb-6">
+                                Balance due · KES {selected.amountPaid.toLocaleString()} already paid of KES {selected.subtotal.toLocaleString()}
+                            </p>
+                        )}
+                        {!selected.amountPaid && <div className="mb-6" />}
 
                         {mpesaState === 'idle' && (
                             <>
-                                <div className="grid grid-cols-3 gap-2 mb-6">
+                                <div className="grid grid-cols-4 gap-2 mb-6">
                                     <button
                                         onClick={() => setPaymentMethod('cash')}
-                                        className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl font-bold border transition-all shadow-xs text-xs ${
+                                        className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl font-bold border transition-all shadow-xs text-[11px] ${
                                             paymentMethod === 'cash'
                                                 ? 'bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/10'
                                                 : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-500/40'
@@ -483,24 +584,34 @@ export default function OrdersLedger() {
                                         <Wallet size={16} /> Cash
                                     </button>
                                     <button
-                                        onClick={() => setPaymentMethod('till')}
-                                        className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl font-bold border transition-all shadow-xs text-xs ${
-                                            paymentMethod === 'till'
+                                        onClick={() => setPaymentMethod('prompt')}
+                                        className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl font-bold border transition-all shadow-xs text-[11px] ${
+                                            paymentMethod === 'prompt'
                                                 ? 'bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/10'
                                                 : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-500/40'
                                         }`}
                                     >
-                                        <Smartphone size={16} /> Till
+                                        <Smartphone size={16} /> Prompt
                                     </button>
                                     <button
                                         onClick={() => setPaymentMethod('both')}
-                                        className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl font-bold border transition-all shadow-xs text-xs ${
+                                        className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl font-bold border transition-all shadow-xs text-[11px] ${
                                             paymentMethod === 'both'
                                                 ? 'bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/10'
                                                 : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-500/40'
                                         }`}
                                     >
                                         <Layers size={16} /> Both
+                                    </button>
+                                    <button
+                                        onClick={() => setPaymentMethod('till')}
+                                        className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl font-bold border transition-all shadow-xs text-[11px] ${
+                                            paymentMethod === 'till'
+                                                ? 'bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/10'
+                                                : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-500/40'
+                                        }`}
+                                    >
+                                        <Landmark size={16} /> Till
                                     </button>
                                 </div>
 
@@ -514,7 +625,7 @@ export default function OrdersLedger() {
                                             value={amountPaid}
                                             onChange={(e) => setAmountPaid(e.target.value)}
                                             className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
-                                            placeholder={selected.subtotal}
+                                            placeholder={due}
                                         />
                                         {amountPaid && (
                                             <p className={`text-sm font-medium mt-2 ${cashChange < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
@@ -526,7 +637,7 @@ export default function OrdersLedger() {
                                     </div>
                                 )}
 
-                                {paymentMethod === 'till' && (
+                                {paymentMethod === 'prompt' && (
                                     <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
                                         <div>
                                             <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">
@@ -541,7 +652,7 @@ export default function OrdersLedger() {
                                             />
                                         </div>
                                         <p className="text-xs text-gray-400">
-                                            STK push amount: <span className="font-bold text-gray-700">KES {selected.subtotal.toLocaleString()}</span>
+                                            Prompt amount: <span className="font-bold text-gray-700">KES {due.toLocaleString()}</span>
                                         </p>
                                     </div>
                                 )}
@@ -562,7 +673,7 @@ export default function OrdersLedger() {
                                         </div>
                                         <div>
                                             <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">
-                                                Customer M-Pesa Number (Till Portion)
+                                                Customer M-Pesa Number (Prompt Portion)
                                             </label>
                                             <input
                                                 type="tel"
@@ -573,8 +684,59 @@ export default function OrdersLedger() {
                                             />
                                         </div>
                                         <p className="text-xs text-gray-400">
-                                            Till amount (auto): <span className="font-bold text-gray-700">KES {tillPortion.toLocaleString()}</span>
+                                            Prompt amount (auto): <span className="font-bold text-gray-700">KES {tillPortion.toLocaleString()}</span>
                                         </p>
+                                    </div>
+                                )}
+
+                                {paymentMethod === 'till' && (
+                                    <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">
+                                                Amount (partial or full)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={tillAmount}
+                                                onChange={(e) => setTillAmount(e.target.value)}
+                                                placeholder={due}
+                                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">
+                                                M-Pesa Code or Customer Full Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={tillReference}
+                                                onChange={(e) => setTillReference(e.target.value)}
+                                                placeholder="e.g. QGH7X8Y1Z or Jane Wanjiru"
+                                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {paymentMethod && (
+                                    <div className="mb-6 border border-purple-100 bg-purple-50/50 rounded-xl p-3">
+                                        <label className="flex items-center gap-2 text-xs font-bold text-purple-700 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={addReward}
+                                                onChange={(e) => setAddReward(e.target.checked)}
+                                            />
+                                            This customer has an account — credit reward points
+                                        </label>
+                                        {addReward && (
+                                            <input
+                                                type="text"
+                                                value={rewardIdentifier}
+                                                onChange={(e) => setRewardIdentifier(e.target.value)}
+                                                placeholder="Their registered email or phone"
+                                                className="w-full mt-2 bg-white border border-purple-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500/10 focus:border-purple-400"
+                                            />
+                                        )}
                                     </div>
                                 )}
 
@@ -586,7 +748,13 @@ export default function OrdersLedger() {
                                         Cancel
                                     </button>
                                     <button
-                                        onClick={paymentMethod === 'cash' ? handleCashPay : handleSendStk}
+                                        onClick={
+                                            paymentMethod === 'cash'
+                                                ? handleCashPay
+                                                : paymentMethod === 'till'
+                                                ? handleTillPay
+                                                : handleSendStk
+                                        }
                                         disabled={
                                             !paymentMethod ||
                                             processing ||
@@ -596,9 +764,9 @@ export default function OrdersLedger() {
                                     >
                                         {processing
                                             ? 'Processing…'
-                                            : paymentMethod === 'cash'
+                                            : paymentMethod === 'cash' || paymentMethod === 'till'
                                             ? 'Confirm Payment'
-                                            : 'Send STK Push'}
+                                            : 'Send Prompt'}
                                     </button>
                                 </div>
                             </>
@@ -608,7 +776,7 @@ export default function OrdersLedger() {
                             <div className="text-center py-4">
                                 <Loader2 size={36} className="animate-spin text-orange-500 mx-auto mb-4" />
                                 <p className="text-gray-700 font-bold mb-1">
-                                    {mpesaState === 'sending' ? 'Sending STK push…' : 'Waiting for confirmation…'}
+                                    {mpesaState === 'sending' ? 'Sending prompt…' : 'Waiting for confirmation…'}
                                 </p>
                                 <p className="text-gray-400 text-sm mb-6">{mpesaMessage}</p>
                                 <button
@@ -651,6 +819,45 @@ export default function OrdersLedger() {
                     </div>
                 </div>
             )}
+
+            {/* ---- Pay with customer reward modal ---- */}
+            {rewardPayTarget && (
+                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs flex items-center justify-center z-50 px-4">
+                    <div className="bg-white border border-gray-200 rounded-2xl p-8 w-full max-w-sm shadow-xl animate-in fade-in zoom-in-95 duration-150">
+                        <h3 className="text-xl font-black text-gray-800 mb-1 flex items-center gap-2">
+                            <Gift size={18} className="text-purple-500" /> Pay with Reward
+                        </h3>
+                        <p className="text-gray-400 text-sm mb-6">
+                            {rewardPayTarget.billId} · Balance KES {balanceDue(rewardPayTarget).toLocaleString()}
+                        </p>
+                        <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">
+                            Customer Email or Phone
+                        </label>
+                        <input
+                            type="text"
+                            value={rewardPayIdentifier}
+                            onChange={(e) => setRewardPayIdentifier(e.target.value)}
+                            placeholder="Registered email or phone"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 mb-6 focus:outline-none focus:ring-2 focus:ring-purple-500/10 focus:border-purple-400"
+                        />
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setRewardPayTarget(null); setRewardPayIdentifier(''); }}
+                                className="flex-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-500 hover:border-gray-300 font-semibold transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handlePayWithReward}
+                                disabled={rewardPayProcessing}
+                                className="flex-1 py-3 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-bold transition-colors disabled:opacity-50 shadow-sm"
+                            >
+                                {rewardPayProcessing ? 'Processing…' : 'Apply Points'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -658,6 +865,7 @@ export default function OrdersLedger() {
 function StatusPill({ status }) {
     const styles = {
         unpaid: 'bg-amber-50 text-amber-700 border-amber-200',
+        partial: 'bg-blue-50 text-blue-700 border-blue-200',
         paid: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         voided: 'bg-red-50 text-red-600 border-red-200',
     };
@@ -666,4 +874,4 @@ function StatusPill({ status }) {
             {status}
         </span>
     );
-                                          }
+            }
