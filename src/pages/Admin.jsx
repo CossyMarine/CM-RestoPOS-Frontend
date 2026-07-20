@@ -7,6 +7,7 @@ import MenuManagement from '../components/Admin/MenuManagement';
 import OrdersLedger from '../components/Admin/OrdersLedger';
 import VoidRequestsView from '../components/Admin/VoidRequestsView';
 import UsersManagement from '../components/Admin/UsersManagement';
+import SettingsManagement from '../components/Admin/SettingsManagement';
 
 const VIEWS = {
     dashboard: DashboardOverview,
@@ -14,6 +15,7 @@ const VIEWS = {
     orders: OrdersLedger,
     voids: VoidRequestsView,
     users: UsersManagement,
+    settings: SettingsManagement,
 };
 
 export default function Admin() {
