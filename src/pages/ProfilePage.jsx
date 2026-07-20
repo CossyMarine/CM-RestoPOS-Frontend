@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   UserCircle2,
@@ -8,7 +9,8 @@ import {
   Camera,
   UserCog,
   Receipt,
-  HelpCircle,
+  Wallet,
+  PhoneCall,
   ChevronRight,
   UserPlus,
   LogIn,
@@ -21,6 +23,7 @@ import {
 } from "lucide-react";
 import BottomNav from "../components/BottomNav";
 import { useAuth } from "../hooks/useAuth";
+import API from "../api/axios";
 
 function initials(name = "") {
   return (
@@ -44,6 +47,21 @@ function formatJoinDate(dateStr) {
 export default function ProfilePage() {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
+  const [wallet, setWallet] = useState(null);
+  const [callNumber, setCallNumber] = useState(null);
+
+  useEffect(() => {
+    if (!user || user.role === "waiter" || user.isStaff) return;
+    API.get("/wallet/me")
+      .then((res) => setWallet(res.data))
+      .catch(() => {});
+  }, [user]);
+
+  useEffect(() => {
+    API.get("/settings/public")
+      .then((res) => setCallNumber(res.data.callNumber))
+      .catch(() => {});
+  }, []);
 
   if (loading) {
     return (
@@ -93,26 +111,32 @@ export default function ProfilePage() {
   const joined = formatJoinDate(user.createdAt);
   const isWaiter = user.role?.toLowerCase() === "waiter" || user.isStaff;
 
-  // Mock Loyalty/Performance Data — pulls dynamically in complete builds
-  const loyaltyPoints = user.loyaltyPoints || 340;
-  const targetPoints = 500;
+  const loyaltyPoints = wallet?.points ?? 0;
+  const targetPoints = wallet?.targetPoints || 500;
   const progressPercent = Math.min((loyaltyPoints / targetPoints) * 100, 100);
 
-  // Build options list contextually depending on active role type
   const options = [
-    ...(isWaiter 
+    ...(isWaiter
       ? [{
           icon: LayoutDashboard,
           title: "POS Waiter Dashboard",
           subtitle: "Launch primary table order management workspace",
-          onClick: () => navigate("/waiter-dashboard"), 
+          onClick: () => navigate("/waiter-dashboard"),
         }]
-      : [{
-          icon: Receipt,
-          title: "My Order History",
-          subtitle: "Track live status updates and historical receipts",
-          onClick: () => navigate("/orders"),
-        }]
+      : [
+          {
+            icon: Receipt,
+            title: "My Order History",
+            subtitle: "Track live status updates and historical receipts",
+            onClick: () => navigate("/orders"),
+          },
+          {
+            icon: Wallet,
+            title: "Wallet & Rewards",
+            subtitle: "Pay bills, view points, and redeem rewards",
+            onClick: () => navigate("/wallet"),
+          },
+        ]
     ),
     {
       icon: UserCog,
@@ -120,18 +144,26 @@ export default function ProfilePage() {
       subtitle: "Update account name, notification email, and phone contact",
       onClick: () => navigate("/profile/details"),
     },
-    {
-      icon: HelpCircle,
-      title: "Help & Support Desk",
-      subtitle: "Review system documentation or call support channels",
-      onClick: () => navigate("/profile/support"),
-    },
+    ...(callNumber
+      ? [{
+          icon: PhoneCall,
+          title: "Call to Manage",
+          subtitle: `Speak to us directly — ${callNumber}`,
+          onClick: () => { window.location.href = `tel:${callNumber}`; },
+        }]
+      : [{
+          icon: PhoneCall,
+          title: "Help & Support Desk",
+          subtitle: "Review system documentation or call support channels",
+          onClick: () => navigate("/profile/support"),
+        }]
+    ),
   ];
 
   return (
     <div className="min-h-screen bg-stone-50 pb-28">
       <main className="max-w-md mx-auto px-5 pt-8 space-y-5">
-        
+
         {/* HERO CARD */}
         <div className="bg-white rounded-3xl shadow-sm border border-stone-100 p-8 text-center relative overflow-hidden">
           <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${isWaiter ? 'from-stone-900 to-stone-700' : 'from-orange-500 to-orange-400'}`} />
@@ -146,8 +178,7 @@ export default function ProfilePage() {
           </div>
 
           <h2 className="text-2xl font-black text-stone-900">{user.fullName}</h2>
-          
-          {/* Contextual Badging system */}
+
           <div className="mt-2.5">
             {isWaiter ? (
               <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-stone-700 bg-stone-100 border border-stone-200 px-3 py-1 rounded-full">
@@ -159,18 +190,17 @@ export default function ProfilePage() {
               </span>
             )}
           </div>
-          
+
           {joined && <p className="text-xs text-stone-400 mt-2.5">Member since {joined}</p>}
         </div>
 
         {/* REWARDS CARD */}
         {!isWaiter ? (
-          /* Customer Loyalty Variant */
           <div className="bg-gradient-to-br from-stone-900 via-stone-800 to-neutral-900 text-white rounded-3xl p-6 shadow-md relative overflow-hidden border border-stone-800">
             <div className="absolute -right-6 -bottom-6 text-stone-700/20 pointer-events-none transform rotate-12">
               <Award size={140} />
             </div>
-            
+
             <div className="flex justify-between items-start mb-6">
               <div>
                 <span className="text-[10px] uppercase bg-orange-500 text-white px-2 py-0.5 rounded-md font-black tracking-widest flex items-center gap-1 w-fit">
@@ -192,18 +222,19 @@ export default function ProfilePage() {
                 <span className="text-stone-400">{loyaltyPoints} / {targetPoints} pts</span>
               </div>
               <div className="w-full bg-stone-700 rounded-full h-2 overflow-hidden p-0.5 border border-stone-800">
-                <div 
-                  className="bg-gradient-to-r from-orange-500 to-amber-400 h-full rounded-full transition-all duration-500" 
+                <div
+                  className="bg-gradient-to-r from-orange-500 to-amber-400 h-full rounded-full transition-all duration-500"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
               <p className="text-[10px] text-stone-400 font-medium pt-1">
-                Earn {targetPoints - loyaltyPoints} more points to unlock a KSh 500 dining voucher!
+                {loyaltyPoints >= targetPoints
+                  ? "You can redeem your points against a bill now!"
+                  : `Earn ${targetPoints - loyaltyPoints} more points to unlock redemption`}
               </p>
             </div>
           </div>
         ) : (
-          /* Staff/Waiter Metrics Variant */
           <div className="bg-gradient-to-br from-orange-600 to-amber-500 text-white rounded-3xl p-5 shadow-md relative overflow-hidden">
             <div className="absolute -right-6 -bottom-6 text-white/10 pointer-events-none transform rotate-12">
               <Zap size={130} />
