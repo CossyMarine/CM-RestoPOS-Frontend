@@ -4,6 +4,7 @@ import {
     ReceiptText,
     ShieldAlert,
     Users,
+    Settings,
     LogOut,
     UtensilsCrossed as Logo,
 } from 'lucide-react';
@@ -14,6 +15,7 @@ const NAV_ITEMS = [
     { id: 'orders', label: 'Orders & Receipts', icon: ReceiptText },
     { id: 'voids', label: 'Void Requests', icon: ShieldAlert },
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 export default function AdminSidebar({ activeView, onNavigate, user, onLogout }) {
