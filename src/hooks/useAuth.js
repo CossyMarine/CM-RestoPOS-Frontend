@@ -28,6 +28,20 @@ export function useAuth() {
       await API.post("/auth/logout");
     } finally {
       setUser(null);
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch {
+        /* storage may be unavailable in some contexts — ignore */
+      }
+      if (typeof caches !== "undefined") {
+        try {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        } catch {
+          /* Cache Storage unsupported — ignore */
+        }
+      }
     }
   };
 
