@@ -2,6 +2,7 @@ import {
     LayoutDashboard,
     UtensilsCrossed,
     ReceiptText,
+    CreditCard,
     ShieldAlert,
     Users,
     Settings,
@@ -13,12 +14,13 @@ const NAV_ITEMS = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'menu', label: 'Manage Menu', icon: UtensilsCrossed },
     { id: 'orders', label: 'Orders & Receipts', icon: ReceiptText },
+    { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'voids', label: 'Void Requests', icon: ShieldAlert },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-export default function AdminSidebar({ activeView, onNavigate, user, onLogout }) {
+export default function AdminSidebar({ activeView, onNavigate, user, onLogout, pendingPaymentsCount = 0 }) {
     return (
         <aside className="w-64 bg-slate-900 h-screen sticky top-0 flex flex-col justify-between shrink-0 shadow-lg z-20">
             <div className="p-6">
@@ -35,6 +37,7 @@ export default function AdminSidebar({ activeView, onNavigate, user, onLogout })
                 <nav className="mt-8 space-y-1">
                     {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
                         const active = activeView === id;
+                        const badge = id === 'payments' ? pendingPaymentsCount : 0;
                         return (
                             <button
                                 key={id}
@@ -46,7 +49,12 @@ export default function AdminSidebar({ activeView, onNavigate, user, onLogout })
                                 }`}
                             >
                                 <Icon size={16} />
-                                {label}
+                                <span className="flex-1">{label}</span>
+                                {badge > 0 && (
+                                    <span className="bg-red-500 text-white text-[10px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
+                                        {badge > 9 ? '9+' : badge}
+                                    </span>
+                                )}
                             </button>
                         );
                     })}
