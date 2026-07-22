@@ -14,6 +14,7 @@ import {
   UserCircle2,
   LogIn,
   UserPlus,
+  Wallet,
 } from "lucide-react";
 import BottomNav from "../components/BottomNav";
 import { useAuth } from "../hooks/useAuth";
@@ -228,6 +229,19 @@ export default function OrdersPage() {
                     Cancel
                   </button>
                 )}
+                {o.status === "completed" && o.billHasPendingPayment && (
+                  <span className="block text-[11px] text-amber-600 font-semibold ml-auto">
+                    Payment pending confirmation
+                  </span>
+                )}
+                {o.status === "completed" && !o.billHasPendingPayment && o.billStatus && o.billStatus !== "paid" && (
+                  <button
+                    onClick={() => navigate(`/wallet?bill=${encodeURIComponent(o.billId)}`)}
+                    className="inline-flex items-center gap-1 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg ml-auto transition-colors"
+                  >
+                    <Wallet size={12} /> Pay
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -313,4 +327,4 @@ export default function OrdersPage() {
       <BottomNav />
     </div>
   );
-}
+                  }
