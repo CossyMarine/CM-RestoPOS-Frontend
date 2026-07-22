@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   Wallet,
@@ -41,6 +41,7 @@ function BillItemImage({ src, alt }) {
 
 export default function WalletPage() {
   const { user, loading } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [wallet, setWallet] = useState(null);
   const [settings, setSettings] = useState(null);
@@ -85,6 +86,21 @@ export default function WalletPage() {
     setPayMethod("stk");
     setStkPending(false);
   };
+
+  // Quick-pay from the Orders page links here as /wallet?bill=BILL-ID
+  useEffect(() => {
+    const billFromUrl = searchParams.get("bill");
+    if (!billFromUrl || !user) return;
+    setBillIdInput(billFromUrl);
+    API.post("/wallet/resolve-bill", { billId: billFromUrl.trim() })
+      .then((res) => openBillForPayment(res.data))
+      .catch((err) => toast.error(err.response?.data?.message || "Couldn't find that bill"))
+      .finally(() => {
+        searchParams.delete("bill");
+        setSearchParams(searchParams, { replace: true });
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleResolveBill = async () => {
     if (!billIdInput.trim()) {
@@ -340,11 +356,15 @@ export default function WalletPage() {
           )}
           {wallet?.bills.map((b) => {
             const balanceDue = Number((b.subtotal - (b.amountPaid || 0)).toFixed(2));
+            const hasPending = (b.pendingManualPayments?.length || 0) > 0;
             return (
               <div key={b._id} className="p-4 flex items-center justify-between text-sm">
                 <div>
                   <p className="font-bold text-stone-900">{b.billId}</p>
                   <p className="text-xs text-stone-400 capitalize">{b.status} · KSh {balanceDue.toLocaleString()} due</p>
+                  {hasPending && (
+                    <p className="text-[11px] text-amber-600 font-semibold mt-0.5">Payment pending confirmation</p>
+                  )}
                 </div>
                 <button
                   onClick={() =>
@@ -358,6 +378,7 @@ export default function WalletPage() {
                       subtotal: b.subtotal,
                       amountPaid: b.amountPaid || 0,
                       balanceDue,
+                      hasPendingManualPayment: hasPending,
                     })
                   }
                   className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors"
@@ -385,6 +406,13 @@ export default function WalletPage() {
             </div>
 
             <div className="p-4 space-y-4">
+              {activeBill.hasPendingManualPayment && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold rounded-lg p-3">
+                  You already submitted a till payment for this bill — it's waiting for the restaurant to confirm it.
+                  You can still submit another payment if needed.
+                </div>
+              )}
+
               {/* Items */}
               <div className="space-y-2">
                 {activeBill.items.map((it, idx) => (
@@ -531,4 +559,4 @@ export default function WalletPage() {
       <BottomNav />
     </div>
   );
-              }
+            }
