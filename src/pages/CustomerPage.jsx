@@ -76,6 +76,7 @@ export default function CustomerPage() {
   const [favorites, setFavorites] = useState(getStoredFavorites);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [whatsappNumber, setWhatsappNumber] = useState(null);
+  const [assumeTable, setAssumeTable] = useState(false);
 
   const updateTableNumber = (value) => {
     setTableNumber(value);
@@ -91,8 +92,13 @@ export default function CustomerPage() {
 
   useEffect(() => {
     API.get("/settings/public")
-      .then((res) => setWhatsappNumber(res.data.whatsappNumber))
+      .then((res) => {
+        setWhatsappNumber(res.data.whatsappNumber);
+        setAssumeTable(!!res.data.assumeTableNumberCustomer);
+        if (res.data.assumeTableNumberCustomer && !tableNumber) updateTableNumber("N/A");
+      })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadOrders = () => {
@@ -184,7 +190,7 @@ export default function CustomerPage() {
       toast.error("Sign in to place an order");
       return;
     }
-    if (!tableNumber) {
+    if (!assumeTable && !tableNumber) {
       toast.error("Enter your table number first");
       return;
     }
@@ -238,14 +244,16 @@ export default function CustomerPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="Table No."
-              value={tableNumber}
-              onChange={(e) => updateTableNumber(e.target.value)}
-              className="w-28 border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-            />
+            {!assumeTable && (
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="Table No."
+                value={tableNumber}
+                onChange={(e) => updateTableNumber(e.target.value)}
+                className="w-28 border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+              />
+            )}
 
             <Link
               to="/profile"
@@ -426,4 +434,4 @@ export default function CustomerPage() {
       <BottomNav />
     </div>
   );
-            }
+    }
