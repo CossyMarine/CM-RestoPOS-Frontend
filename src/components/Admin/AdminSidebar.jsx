@@ -5,6 +5,7 @@ import {
     CreditCard,
     ShieldAlert,
     Users,
+    UserCog,
     Settings,
     LogOut,
     UtensilsCrossed as Logo,
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'voids', label: 'Void Requests', icon: ShieldAlert },
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'waiters', label: 'Waiter Management', icon: UserCog },
     { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
