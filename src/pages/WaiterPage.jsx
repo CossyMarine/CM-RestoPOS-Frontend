@@ -35,6 +35,7 @@ export default function WaiterDashboard() {
   const [waiters, setWaiters] = useState([]);
   const [waiterName, setWaiterName] = useState("");
   const [tableNumber, setTableNumber] = useState("");
+  const [assumeTableWaiter, setAssumeTableWaiter] = useState(false);
 
   const [menu, setMenu] = useState([]);
   const [menuLoading, setMenuLoading] = useState(true);
@@ -81,6 +82,16 @@ export default function WaiterDashboard() {
           .filter((o) => o.source === "online")
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setOnlineOrders(online);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    API.get("/settings/public")
+      .then((res) => {
+        const on = !!res.data.assumeTableNumberWaiter;
+        setAssumeTableWaiter(on);
+        if (on) setTableNumber("N/A");
       })
       .catch(() => {});
   }, []);
@@ -167,7 +178,7 @@ export default function WaiterDashboard() {
 
   // ---- Cart ----
   const addToCart = (item) => {
-    if (!waiterName || !tableNumber) {
+    if (!waiterName || (!assumeTableWaiter && !tableNumber)) {
       toast.warning("Select the assigned server and table number first");
       return;
     }
@@ -209,7 +220,7 @@ export default function WaiterDashboard() {
 
   // ---- Print / submit ----
   const handlePrintSubmit = () => {
-    if (!waiterName || !tableNumber || cart.length === 0) {
+    if (!waiterName || (!assumeTableWaiter && !tableNumber) || cart.length === 0) {
       toast.error("Complete server, table, and item selections before printing");
       return;
     }
@@ -457,4 +468,4 @@ export default function WaiterDashboard() {
       />
     </div>
   );
-                                }
+                               }
