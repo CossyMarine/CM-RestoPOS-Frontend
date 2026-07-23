@@ -12,6 +12,7 @@ import PaymentsView from '../components/Admin/PaymentsView';
 import VoidRequestsView from '../components/Admin/VoidRequestsView';
 import UsersManagement from '../components/Admin/UsersManagement';
 import SettingsManagement from '../components/Admin/SettingsManagement';
+import WaiterManagement from '../components/Admin/WaiterManagement';
 
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
@@ -22,6 +23,7 @@ const VIEWS = {
     payments: PaymentsView,
     voids: VoidRequestsView,
     users: UsersManagement,
+    waiters: WaiterManagement,
     settings: SettingsManagement,
 };
 
