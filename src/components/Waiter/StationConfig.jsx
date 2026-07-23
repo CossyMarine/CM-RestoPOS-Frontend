@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 export default function StationConfig({ waiters, waiterName, onWaiterChange, tableNumber, onTableChange, hideTableField }) {
   useEffect(() => {
     if (waiters.length === 1 && waiterName !== waiters[0].fullName) {
