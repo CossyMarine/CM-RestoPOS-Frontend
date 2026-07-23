@@ -1,8 +1,11 @@
 import {
-    Eye, RefreshCw, Wallet, Smartphone, Layers, Landmark, Search,
-    ChevronLeft, ChevronRight, Loader2, CheckCircle2, XCircle, Gift, Clock,
-} from 'lucide-react';
-import StatusPill from './StatusPill';
+    Eye,
+    Clock,
+    Gift,
+    ChevronLeft,
+    ChevronRight,
+} from "lucide-react";
+import StatusPill from "./StatusPill";
 
 export default function OrdersTable({
     tab,
@@ -14,6 +17,12 @@ export default function OrdersTable({
     setViewing,
     setSelected,
     setRewardPayTarget,
+
+    // NEW
+    waiters = [],
+    onClaim,
+    claimBusy = false,
+
     allPage,
     allTotalPages,
     allTotal,
@@ -31,71 +40,138 @@ export default function OrdersTable({
                             <th className="p-3">Amount</th>
                             <th className="p-3">Balance Due</th>
                             <th className="p-3">Date</th>
-                            {tab === 'all' && <th className="p-3">Status</th>}
+                            {tab === "all" && <th className="p-3">Status</th>}
                             <th className="p-3 text-right">Actions</th>
                         </tr>
                     </thead>
+
                     <tbody className="divide-y divide-gray-100 text-gray-600">
-                        {(tab === 'all' ? allLoading : loading) ? (
+                        {(tab === "all" ? allLoading : loading) ? (
                             <tr>
                                 <td colSpan={8} className="p-6 text-center text-gray-400 font-medium">
-                                    Loading…
+                                    Loading...
                                 </td>
                             </tr>
                         ) : rows.length === 0 ? (
                             <tr>
                                 <td colSpan={8} className="p-6 text-center text-gray-400 font-medium">
-                                    No {tab === 'all' ? '' : tab} receipts
+                                    No{" "}
+                                    {tab === "all"
+                                        ? ""
+                                        : tab === "pending-online"
+                                        ? "pending online"
+                                        : tab}{" "}
+                                    receipts
                                 </td>
                             </tr>
                         ) : (
                             rows.map((r) => (
-                                <tr key={r._id} className={`transition-colors ${tab === 'all' ? rowHighlight(r.status) : 'hover:bg-gray-50/70'}`}>
+                                <tr
+                                    key={r._id}
+                                    className={`transition-colors ${
+                                        tab === "all"
+                                            ? rowHighlight(r.status)
+                                            : "hover:bg-gray-50/70"
+                                    }`}
+                                >
                                     <td className="p-3 font-bold text-orange-500">
                                         {r.billId}
+
                                         {r.pendingManualPayments?.length > 0 && (
                                             <span className="ml-2 inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide bg-amber-100 text-amber-700 border border-amber-200 align-middle">
-                                                <Clock size={9} /> Confirm Pending
+                                                <Clock size={9} />
+                                                Confirm Pending
                                             </span>
                                         )}
                                     </td>
-                                    <td className="p-3 font-semibold text-gray-800">Table {r.tableNumber}</td>
-                                    <td className="p-3 font-medium">{r.waiterName || '—'}</td>
-                                    <td className="p-3 font-bold text-gray-800">KES {r.subtotal.toLocaleString()}</td>
+
+                                    <td className="p-3 font-semibold text-gray-800">
+                                        Table {r.tableNumber}
+                                    </td>
+
+                                    <td className="p-3 font-medium">
+                                        {tab === "pending-online" ? (
+                                            <select
+                                                defaultValue=""
+                                                disabled={claimBusy}
+                                                onChange={(e) =>
+                                                    e.target.value &&
+                                                    onClaim(r, e.target.value)
+                                                }
+                                                className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1 text-xs font-semibold"
+                                            >
+                                                <option value="" disabled>
+                                                    Assign waiter…
+                                                </option>
+
+                                                {waiters.map((w) => (
+                                                    <option
+                                                        key={w.id}
+                                                        value={w.fullName}
+                                                    >
+                                                        {w.fullName}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            r.waiterName || "—"
+                                        )}
+                                    </td>
+
+                                    <td className="p-3 font-bold text-gray-800">
+                                        KES {r.subtotal.toLocaleString()}
+                                    </td>
+
                                     <td className="p-3 font-semibold text-gray-600">
                                         KES {balanceDue(r).toLocaleString()}
                                     </td>
+
                                     <td className="p-3 text-xs text-gray-400">
                                         {new Date(r.createdAt).toLocaleString()}
                                     </td>
-                                    {tab === 'all' && (
+
+                                    {tab === "all" && (
                                         <td className="p-3">
                                             <StatusPill status={r.status} />
                                         </td>
                                     )}
+
                                     <td className="p-3 text-right space-x-3 whitespace-nowrap">
                                         <button
                                             onClick={() => setViewing(r)}
                                             className="inline-flex items-center gap-1 text-gray-400 hover:text-orange-500 text-xs font-semibold transition-colors"
                                         >
-                                            <Eye size={14} /> View
+                                            <Eye size={14} />
+                                            View
                                         </button>
-                                        {['unpaid', 'partial'].includes(r.status) && (
-                                            <>
-                                                <button
-                                                    onClick={() => setSelected(r)}
-                                                    className="text-emerald-600 hover:text-emerald-700 text-xs font-bold transition-colors"
-                                                >
-                                                    Pay
-                                                </button>
-                                                <button
-                                                    onClick={() => setRewardPayTarget(r)}
-                                                    className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700 text-xs font-bold transition-colors"
-                                                >
-                                                    <Gift size={13} /> Reward
-                                                </button>
-                                            </>
-                                        )}
+
+                                        {tab !== "pending-online" &&
+                                            ["unpaid", "partial"].includes(
+                                                r.status
+                                            ) && (
+                                                <>
+                                                    <button
+                                                        onClick={() =>
+                                                            setSelected(r)
+                                                        }
+                                                        className="text-emerald-600 hover:text-emerald-700 text-xs font-bold transition-colors"
+                                                    >
+                                                        Pay
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() =>
+                                                            setRewardPayTarget(
+                                                                r
+                                                            )
+                                                        }
+                                                        className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700 text-xs font-bold transition-colors"
+                                                    >
+                                                        <Gift size={13} />
+                                                        Reward
+                                                    </button>
+                                                </>
+                                            )}
                                     </td>
                                 </tr>
                             ))
@@ -104,27 +180,37 @@ export default function OrdersTable({
                 </table>
             </div>
 
-            {tab === 'all' && allTotalPages > 1 && (
+            {tab === "all" && allTotalPages > 1 && (
                 <div className="flex items-center justify-between pt-4 mt-2 border-t border-gray-100">
                     <button
-                        onClick={() => fetchAllReceipts(Math.max(1, allPage - 1))}
+                        onClick={() =>
+                            fetchAllReceipts(Math.max(1, allPage - 1))
+                        }
                         disabled={allPage <= 1}
                         className="flex items-center gap-1 text-xs font-bold text-gray-500 disabled:opacity-30 hover:text-orange-500"
                     >
-                        <ChevronLeft size={14} /> Prev
+                        <ChevronLeft size={14} />
+                        Prev
                     </button>
+
                     <span className="text-xs font-semibold text-gray-500">
                         Page {allPage} of {allTotalPages} · {allTotal} bills
                     </span>
+
                     <button
-                        onClick={() => fetchAllReceipts(Math.min(allTotalPages, allPage + 1))}
+                        onClick={() =>
+                            fetchAllReceipts(
+                                Math.min(allTotalPages, allPage + 1)
+                            )
+                        }
                         disabled={allPage >= allTotalPages}
                         className="flex items-center gap-1 text-xs font-bold text-gray-500 disabled:opacity-30 hover:text-orange-500"
                     >
-                        Next <ChevronRight size={14} />
+                        Next
+                        <ChevronRight size={14} />
                     </button>
                 </div>
             )}
         </div>
     );
-          }
+                        }
