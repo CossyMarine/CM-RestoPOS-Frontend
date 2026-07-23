@@ -1,0 +1,357 @@
+import { useState, useEffect, useMemo } from 'react';
+import { RefreshCw, Search, Eye, Ban, CheckCircle2, Trash2, ListFilter, X } from 'lucide-react';
+import { toast } from 'react-toastify';
+import API from '../../api/axios';
+import ConfirmModal from './ConfirmModal';
+
+const STATUS_TABS = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Dropped' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'name', label: 'Name' },
+  { value: 'orders', label: 'Most Orders' },
+  { value: 'sales', label: 'Highest Sales' },
+  { value: 'void', label: 'Most Voids' },
+];
+
+function fmt(n) {
+  return `KSh ${Number(n || 0).toLocaleString()}`;
+}
+
+export default function WaiterManagement() {
+  const [waiters, setWaiters] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('all');
+  const [sort, setSort] = useState('name');
+
+  const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const [dropTarget, setDropTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [working, setWorking] = useState(false);
+
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [selectorList, setSelectorList] = useState([]);
+  const [selectorLoading, setSelectorLoading] = useState(false);
+
+  const fetchWaiters = async () => {
+    setLoading(true);
+    try {
+      const res = await API.get('/waiters/management', { params: { search, status, sort } });
+      setWaiters(res.data);
+    } catch (err) {
+      toast.error('Failed to load waiter performance data');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchWaiters(); }, [status, sort]); // eslint-disable-line
+  useEffect(() => {
+    const t = setTimeout(fetchWaiters, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  const openDetail = async (w) => {
+    setDetail({ fullName: w.fullName });
+    setDetailLoading(true);
+    try {
+      const res = await API.get(`/waiters/management/${w.id}`);
+      setDetail(res.data);
+    } catch {
+      toast.error('Could not load waiter detail');
+      setDetail(null);
+    }
+    setDetailLoading(false);
+  };
+
+  const confirmDrop = async () => {
+    setWorking(true);
+    try {
+      const url = dropTarget.isActive
+        ? `/waiters/management/${dropTarget.id}/drop`
+        : `/waiters/management/${dropTarget.id}/restore`;
+      await API.patch(url);
+      toast.success(dropTarget.isActive ? 'Waiter dropped' : 'Waiter restored');
+      setDropTarget(null);
+      fetchWaiters();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Action failed');
+    }
+    setWorking(false);
+  };
+
+  const confirmDelete = async () => {
+    setWorking(true);
+    try {
+      await API.delete(`/waiters/management/${deleteTarget.id}`);
+      toast.success('Waiter account removed');
+      setDeleteTarget(null);
+      fetchWaiters();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Delete failed');
+    }
+    setWorking(false);
+  };
+
+  const openSelector = async () => {
+    setSelectorOpen(true);
+    setSelectorLoading(true);
+    try {
+      const res = await API.get('/waiters/selector-list');
+      setSelectorList(res.data);
+    } catch {
+      toast.error('Could not load selector list');
+    }
+    setSelectorLoading(false);
+  };
+
+  const toggleVisibility = async (w) => {
+    const next = !w.hidden;
+    setSelectorList((prev) => prev.map((x) => (x.id === w.id ? { ...x, hidden: next } : x)));
+    try {
+      await API.patch(`/waiters/${w.id}/visibility`, { hidden: next });
+      fetchWaiters();
+    } catch {
+      toast.error('Could not update visibility');
+      setSelectorList((prev) => prev.map((x) => (x.id === w.id ? { ...x, hidden: !next } : x)));
+    }
+  };
+
+  const visibleInSelectorCount = useMemo(
+    () => selectorList.filter((w) => !w.hidden && w.isActive).length,
+    [selectorList]
+  );
+
+  return (
+    <div className="space-y-8 bg-gray-50 text-gray-800">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-gray-800">Waiter Management</h2>
+          <p className="text-sm text-gray-500">Performance, void rate, and sales per waiter — plus who appears on the order-taking dropdown</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={openSelector}
+            className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-orange-500/40 text-gray-600 hover:text-orange-500 px-3 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+          >
+            <ListFilter size={14} /> Manage Selector Dropdown
+          </button>
+          <button
+            onClick={fetchWaiters}
+            className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-orange-500/40 text-gray-500 hover:text-orange-500 px-3 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+        <div className="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+          <div className="relative w-full sm:w-72">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search waiter by name..."
+              className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1.5">
+              {STATUS_TABS.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => setStatus(t.value)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                    status === t.value ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-500 hover:text-orange-500'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-gray-600"
+            >
+              {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="text-gray-400 font-semibold border-b border-gray-100">
+                <th className="p-3">Waiter</th>
+                <th className="p-3">Since</th>
+                <th className="p-3">Source</th>
+                <th className="p-3 text-center">Today</th>
+                <th className="p-3 text-center">Week</th>
+                <th className="p-3 text-center">Month</th>
+                <th className="p-3 text-center">Year</th>
+                <th className="p-3">Total Sold</th>
+                <th className="p-3">Voids</th>
+                <th className="p-3">Status</th>
+                <th className="p-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-gray-600">
+              {waiters.length === 0 ? (
+                <tr><td colSpan={11} className="p-8 text-center text-gray-400 font-medium">No waiters found</td></tr>
+              ) : (
+                waiters.map((w) => (
+                  <tr key={w.id} className="hover:bg-gray-50/70 transition-colors">
+                    <td className="p-3 font-bold text-gray-800">{w.fullName}</td>
+                    <td className="p-3 text-xs text-gray-400">{new Date(w.waiterSince).toLocaleDateString()}</td>
+                    <td className="p-3">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${
+                        w.waiterSource === 'promoted' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200'
+                      }`}>
+                        {w.waiterSource === 'promoted' ? 'Promoted' : 'Direct'}
+                      </span>
+                    </td>
+                    <td className="p-3 text-center">{w.ordersToday}</td>
+                    <td className="p-3 text-center">{w.ordersWeek}</td>
+                    <td className="p-3 text-center">{w.ordersMonth}</td>
+                    <td className="p-3 text-center">{w.ordersYear}</td>
+                    <td className="p-3 font-semibold text-gray-800">{fmt(w.totalBalanceSold)}</td>
+                    <td className="p-3">
+                      {w.totalVoidCount > 0 ? (
+                        <span className="text-red-500 font-bold text-xs">{w.totalVoidCount} · {fmt(w.totalVoidAmount)}</span>
+                      ) : <span className="text-gray-300 text-xs">—</span>}
+                    </td>
+                    <td className="p-3">
+                      {w.isActive ? (
+                        <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-bold"><CheckCircle2 size={13} /> Active</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-red-500 text-xs font-bold"><Ban size={13} /> Dropped</span>
+                      )}
+                    </td>
+                    <td className="p-3 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        <button onClick={() => openDetail(w)} className="text-gray-400 hover:text-orange-500" title="View"><Eye size={15} /></button>
+                        <button
+                          onClick={() => setDropTarget(w)}
+                          className={`text-xs font-bold ${w.isActive ? 'text-red-500 hover:text-red-600' : 'text-emerald-600 hover:text-emerald-700'}`}
+                        >
+                          {w.isActive ? 'Drop' : 'Restore'}
+                        </button>
+                        <button onClick={() => setDeleteTarget(w)} className="text-gray-400 hover:text-red-500" title="Delete permanently">
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Waiter detail modal */}
+      {detail && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-black text-gray-800">{detail.fullName}</h3>
+              <button onClick={() => setDetail(null)}><X size={18} className="text-gray-400" /></button>
+            </div>
+            <div className="p-5 space-y-3">
+              {detailLoading ? (
+                <p className="text-gray-400 text-sm">Loading…</p>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-500">Waiter since: {new Date(detail.waiterSince).toLocaleDateString()}</p>
+                  <p className="text-sm text-gray-500">Source: {detail.waiterSource === 'promoted' ? 'Promoted from another role' : 'Added directly as waiter'}</p>
+                  <p className="text-sm text-gray-500">Contact: {detail.email || detail.phone || '—'}</p>
+                  <h4 className="text-xs font-bold uppercase text-gray-400 mt-4">Recent Bills</h4>
+                  <div className="divide-y divide-gray-100">
+                    {(detail.recentBills || []).map((b) => (
+                      <div key={b._id} className="py-2 flex justify-between text-sm">
+                        <span>{b.billId} · Table {b.tableNumber}</span>
+                        <span className="font-semibold">{fmt(b.subtotal)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Selector visibility manager */}
+      {selectorOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-black text-gray-800">Assigned Server Dropdown</h3>
+                <p className="text-xs text-gray-400">Choose who shows up when taking an order ({visibleInSelectorCount} visible)</p>
+              </div>
+              <button onClick={() => setSelectorOpen(false)}><X size={18} className="text-gray-400" /></button>
+            </div>
+            <div className="p-5 space-y-2">
+              {selectorLoading ? (
+                <p className="text-gray-400 text-sm">Loading…</p>
+              ) : selectorList.length === 0 ? (
+                <p className="text-gray-400 text-sm">No waiter accounts yet.</p>
+              ) : (
+                selectorList.map((w) => (
+                  <label key={w.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <span className={`text-sm font-semibold ${!w.isActive ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {w.fullName} {!w.isActive && <span className="text-[10px] font-bold text-red-400 ml-1">(dropped)</span>}
+                    </span>
+                    <input
+                      type="checkbox"
+                      disabled={!w.isActive}
+                      checked={!w.hidden}
+                      onChange={() => toggleVisibility(w)}
+                      className="w-4 h-4 accent-orange-500"
+                    />
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        open={!!dropTarget}
+        title={dropTarget?.isActive ? 'Drop this waiter?' : 'Restore this waiter?'}
+        description={
+          dropTarget?.isActive
+            ? `${dropTarget?.fullName} will be deactivated and removed from the order-taking dropdown. Their history is kept.`
+            : `${dropTarget?.fullName} will be reactivated and reappear on the order-taking dropdown.`
+        }
+        confirmLabel={dropTarget?.isActive ? 'Drop' : 'Restore'}
+        tone={dropTarget?.isActive ? 'danger' : 'default'}
+        loading={working}
+        onConfirm={confirmDrop}
+        onClose={() => setDropTarget(null)}
+      />
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Permanently delete this waiter account?"
+        description={`This removes ${deleteTarget?.fullName}'s account entirely. Past bills/orders stay on record but will show as an unlinked name. This can't be undone.`}
+        confirmLabel="Delete Permanently"
+        tone="danger"
+        loading={working}
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteTarget(null)}
+      />
+    </div>
+  );
+    }
