@@ -39,7 +39,7 @@ export default function OrdersLedger() {
     const [cashPortion, setCashPortion] = useState('');
     const [mpesaPhone, setMpesaPhone] = useState('');
     const [tillAmount, setTillAmount] = useState('');
-    const [tillReference, setTillReference] = useState('');
+    const [bothMethod, setBothMethod] = useState('prompt'); // 'prompt' | 'till' — which leg pairs with cash under "Both"
     const [processing, setProcessing] = useState(false);
     const [mpesaState, setMpesaState] = useState('idle'); // idle | sending | pending | success | failed
     const [mpesaMessage, setMpesaMessage] = useState('');
@@ -140,7 +140,7 @@ export default function OrdersLedger() {
         setCashPortion('');
         setMpesaPhone('');
         setTillAmount('');
-        setTillReference('');
+        setBothMethod('prompt');
         setMpesaState('idle');
         setMpesaMessage('');
         setAddReward(false);
@@ -197,16 +197,11 @@ export default function OrdersLedger() {
             toast.error(`Enter an amount between 1 and ${due}`);
             return;
         }
-        if (!tillReference.trim()) {
-            toast.error("Enter the M-Pesa code or the customer's full name");
-            return;
-        }
         setProcessing(true);
         try {
             await API.post('/wallet/pay/manual', {
                 receiptId: selected._id,
                 amount: amt,
-                reference: tillReference.trim(),
             });
             await maybeCreditReward(amt);
             toast.success('Payment recorded');
@@ -214,6 +209,27 @@ export default function OrdersLedger() {
             refreshAfterPayment();
         } catch (err) {
             console.error('Till payment failed', err);
+            toast.error(err.response?.data?.message || 'Payment failed');
+        }
+        setProcessing(false);
+    };
+
+    const handleCashTillPay = async () => {
+        const due = balanceDue(selected);
+        const cashAmount = parseFloat(cashPortion);
+        if (isNaN(cashAmount) || cashAmount <= 0 || cashAmount >= due) {
+            toast.error('Cash amount must be more than 0 and less than the balance due');
+            return;
+        }
+        setProcessing(true);
+        try {
+            await API.patch(`/receipts/${selected._id}/pay/cash-till`, { cashAmount });
+            await maybeCreditReward(due);
+            toast.success('Payment recorded');
+            resetPaymentState();
+            refreshAfterPayment();
+        } catch (err) {
+            console.error('Cash+Till payment failed', err);
             toast.error(err.response?.data?.message || 'Payment failed');
         }
         setProcessing(false);
@@ -432,8 +448,8 @@ export default function OrdersLedger() {
                 setMpesaPhone={setMpesaPhone}
                 tillAmount={tillAmount}
                 setTillAmount={setTillAmount}
-                tillReference={tillReference}
-                setTillReference={setTillReference}
+                bothMethod={bothMethod}
+                setBothMethod={setBothMethod}
                 processing={processing}
                 mpesaState={mpesaState}
                 mpesaMessage={mpesaMessage}
@@ -446,6 +462,7 @@ export default function OrdersLedger() {
                 resetPaymentState={resetPaymentState}
                 handleCashPay={handleCashPay}
                 handleTillPay={handleTillPay}
+                handleCashTillPay={handleCashTillPay}
                 handleSendStk={handleSendStk}
                 handleRetryMpesa={handleRetryMpesa}
             />
@@ -461,4 +478,4 @@ export default function OrdersLedger() {
             />
         </div>
     );
-                           }
+}
