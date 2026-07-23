@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { RefreshCw, Search, Eye, Ban, CheckCircle2, Trash2, ListFilter, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
@@ -35,9 +35,11 @@ export default function WaiterManagement() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [working, setWorking] = useState(false);
 
-  const [selectorOpen, setSelectorOpen] = useState(false);
-  const [selectorList, setSelectorList] = useState([]);
+  // Per-waiter selector settings modal
+  const [selectorTarget, setSelectorTarget] = useState(null); // { id, fullName } of the row being configured
+  const [selectorSettings, setSelectorSettings] = useState(null); // { selectorMode, visibleWaiters, allWaiters }
   const [selectorLoading, setSelectorLoading] = useState(false);
+  const [selectorSaving, setSelectorSaving] = useState(false);
 
   const fetchWaiters = async () => {
     setLoading(true);
@@ -99,49 +101,64 @@ export default function WaiterManagement() {
     setWorking(false);
   };
 
-  const openSelector = async () => {
-    setSelectorOpen(true);
+  // ---- Per-waiter selector settings ----
+  const openSelectorFor = async (w) => {
+    setSelectorTarget(w);
     setSelectorLoading(true);
     try {
-      const res = await API.get('/waiters/selector-list');
-      setSelectorList(res.data);
+      const res = await API.get(`/waiters/management/${w.id}/selector-settings`);
+      setSelectorSettings(res.data);
     } catch {
-      toast.error('Could not load selector list');
+      toast.error("Could not load this waiter's selector settings");
+      setSelectorTarget(null);
     }
     setSelectorLoading(false);
   };
 
-  const toggleVisibility = async (w) => {
-    const next = !w.hidden;
-    setSelectorList((prev) => prev.map((x) => (x.id === w.id ? { ...x, hidden: next } : x)));
-    try {
-      await API.patch(`/waiters/${w.id}/visibility`, { hidden: next });
-      fetchWaiters();
-    } catch {
-      toast.error('Could not update visibility');
-      setSelectorList((prev) => prev.map((x) => (x.id === w.id ? { ...x, hidden: !next } : x)));
-    }
+  const closeSelector = () => {
+    setSelectorTarget(null);
+    setSelectorSettings(null);
   };
 
-  const visibleInSelectorCount = useMemo(
-    () => selectorList.filter((w) => !w.hidden && w.isActive).length,
-    [selectorList]
-  );
+  const setSelectorMode = (mode) => {
+    setSelectorSettings((prev) => ({ ...prev, selectorMode: mode }));
+  };
+
+  const toggleSelectorWaiter = (id) => {
+    setSelectorSettings((prev) => {
+      const has = prev.visibleWaiters.includes(id);
+      return {
+        ...prev,
+        visibleWaiters: has
+          ? prev.visibleWaiters.filter((x) => x !== id)
+          : [...prev.visibleWaiters, id],
+      };
+    });
+  };
+
+  const saveSelectorSettings = async () => {
+    setSelectorSaving(true);
+    try {
+      await API.patch(`/waiters/management/${selectorTarget.id}/selector-settings`, {
+        selectorMode: selectorSettings.selectorMode,
+        visibleWaiters: selectorSettings.visibleWaiters,
+      });
+      toast.success(`Updated ${selectorTarget.fullName}'s dropdown`);
+      closeSelector();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not save selector settings');
+    }
+    setSelectorSaving(false);
+  };
 
   return (
     <div className="space-y-8 bg-gray-50 text-gray-800">
       <div className="flex flex-wrap justify-between items-center gap-4">
         <div>
           <h2 className="text-2xl font-black text-gray-800">Waiter Management</h2>
-          <p className="text-sm text-gray-500">Performance, void rate, and sales per waiter — plus who appears on the order-taking dropdown</p>
+          <p className="text-sm text-gray-500">Performance, void rate, and sales per waiter — plus who each waiter sees on their own order-taking dropdown</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={openSelector}
-            className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-orange-500/40 text-gray-600 hover:text-orange-500 px-3 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
-          >
-            <ListFilter size={14} /> Manage Selector Dropdown
-          </button>
           <button
             onClick={fetchWaiters}
             className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-orange-500/40 text-gray-500 hover:text-orange-500 px-3 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
@@ -240,6 +257,13 @@ export default function WaiterManagement() {
                       <div className="flex items-center justify-end gap-3">
                         <button onClick={() => openDetail(w)} className="text-gray-400 hover:text-orange-500" title="View"><Eye size={15} /></button>
                         <button
+                          onClick={() => openSelectorFor(w)}
+                          className="text-gray-400 hover:text-orange-500"
+                          title="Configure this waiter's own dropdown"
+                        >
+                          <ListFilter size={15} />
+                        </button>
+                        <button
                           onClick={() => setDropTarget(w)}
                           className={`text-xs font-bold ${w.isActive ? 'text-red-500 hover:text-red-600' : 'text-emerald-600 hover:text-emerald-700'}`}
                         >
@@ -290,37 +314,75 @@ export default function WaiterManagement() {
         </div>
       )}
 
-      {/* Selector visibility manager */}
-      {selectorOpen && (
+      {/* Per-waiter selector settings modal */}
+      {selectorTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h3 className="font-black text-gray-800">Assigned Server Dropdown</h3>
-                <p className="text-xs text-gray-400">Choose who shows up when taking an order ({visibleInSelectorCount} visible)</p>
+                <h3 className="font-black text-gray-800">{selectorTarget.fullName}'s Dropdown</h3>
+                <p className="text-xs text-gray-400">Who {selectorTarget.fullName} sees when they log in and open the waiter selector</p>
               </div>
-              <button onClick={() => setSelectorOpen(false)}><X size={18} className="text-gray-400" /></button>
+              <button onClick={closeSelector}><X size={18} className="text-gray-400" /></button>
             </div>
-            <div className="p-5 space-y-2">
-              {selectorLoading ? (
+
+            <div className="p-5 space-y-4">
+              {selectorLoading || !selectorSettings ? (
                 <p className="text-gray-400 text-sm">Loading…</p>
-              ) : selectorList.length === 0 ? (
-                <p className="text-gray-400 text-sm">No waiter accounts yet.</p>
               ) : (
-                selectorList.map((w) => (
-                  <label key={w.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <span className={`text-sm font-semibold ${!w.isActive ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {w.fullName} {!w.isActive && <span className="text-[10px] font-bold text-red-400 ml-1">(dropped)</span>}
-                    </span>
-                    <input
-                      type="checkbox"
-                      disabled={!w.isActive}
-                      checked={!w.hidden}
-                      onChange={() => toggleVisibility(w)}
-                      className="w-4 h-4 accent-orange-500"
-                    />
-                  </label>
-                ))
+                <>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setSelectorMode('all')}
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
+                        selectorSettings.selectorMode === 'all' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      All active waiters
+                    </button>
+                    <button
+                      onClick={() => setSelectorMode('custom')}
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
+                        selectorSettings.selectorMode === 'custom' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      Custom list only
+                    </button>
+                  </div>
+
+                  {selectorSettings.selectorMode === 'custom' && (
+                    <div className="space-y-1 border border-gray-100 rounded-lg p-2 max-h-64 overflow-y-auto">
+                      <p className="text-[11px] text-gray-400 px-1 pb-1">
+                        {selectorTarget.fullName} will always see themselves too — pick who else shows up.
+                      </p>
+                      {selectorSettings.allWaiters.length === 0 ? (
+                        <p className="text-gray-400 text-sm p-2">No other waiters yet.</p>
+                      ) : (
+                        selectorSettings.allWaiters.map((w) => (
+                          <label key={w.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <span className={`text-sm font-semibold ${!w.isActive ? 'text-gray-300' : 'text-gray-700'}`}>
+                              {w.fullName} {!w.isActive && <span className="text-[10px] font-bold text-red-400 ml-1">(dropped)</span>}
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={selectorSettings.visibleWaiters.includes(w.id)}
+                              onChange={() => toggleSelectorWaiter(w.id)}
+                              className="w-4 h-4 accent-orange-500"
+                            />
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={saveSelectorSettings}
+                    disabled={selectorSaving}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg text-sm font-bold disabled:opacity-50"
+                  >
+                    {selectorSaving ? 'Saving…' : 'Save Settings'}
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -332,8 +394,8 @@ export default function WaiterManagement() {
         title={dropTarget?.isActive ? 'Drop this waiter?' : 'Restore this waiter?'}
         description={
           dropTarget?.isActive
-            ? `${dropTarget?.fullName} will be deactivated and removed from the order-taking dropdown. Their history is kept.`
-            : `${dropTarget?.fullName} will be reactivated and reappear on the order-taking dropdown.`
+            ? `${dropTarget?.fullName} will be deactivated and removed from every waiter's order-taking dropdown. Their history is kept.`
+            : `${dropTarget?.fullName} will be reactivated and reappear on order-taking dropdowns.`
         }
         confirmLabel={dropTarget?.isActive ? 'Drop' : 'Restore'}
         tone={dropTarget?.isActive ? 'danger' : 'default'}
@@ -354,4 +416,4 @@ export default function WaiterManagement() {
       />
     </div>
   );
-    }
+        }
