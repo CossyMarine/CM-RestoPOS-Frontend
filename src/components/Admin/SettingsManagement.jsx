@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, RefreshCw, Landmark, MessageCircle, Phone, Gift } from 'lucide-react';
+import { Save, RefreshCw, Landmark, MessageCircle, Phone, Gift, Table2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
 
@@ -8,6 +8,8 @@ const EMPTY = {
     tillName: '',
     whatsappNumber: '',
     callNumber: '',
+    assumeTableNumberCustomer: false,
+    assumeTableNumberWaiter: false,
     reward: {
         enabled: false,
         cashbackPercent: 0,
@@ -31,6 +33,8 @@ export default function SettingsManagement() {
                 tillName: res.data.tillName || '',
                 whatsappNumber: res.data.whatsappNumber || '',
                 callNumber: res.data.callNumber || '',
+                assumeTableNumberCustomer: !!res.data.assumeTableNumberCustomer,
+                assumeTableNumberWaiter: !!res.data.assumeTableNumberWaiter,
                 reward: {
                     enabled: !!res.data.reward?.enabled,
                     cashbackPercent: res.data.reward?.cashbackPercent ?? 0,
@@ -130,6 +134,43 @@ export default function SettingsManagement() {
                         />
                         <p className="text-[11px] text-gray-400 mt-1">Shown as "Call to manage" on the customer profile page</p>
                     </Field>
+
+                    <h3 className="text-base font-black text-gray-800 border-b border-gray-100 pb-3 pt-2 flex items-center gap-2">
+                        <Table2 size={16} className="text-orange-500" />
+                        Table Number Behavior
+                    </h3>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-semibold text-gray-700">Assume Table Number (Customer)</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">Skip manual table entry for customers when ordering</p>
+                        </div>
+                        <button
+                            onClick={() => setForm({ ...form, assumeTableNumberCustomer: !form.assumeTableNumberCustomer })}
+                            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${form.assumeTableNumberCustomer ? 'bg-orange-500' : 'bg-gray-300'}`}
+                        >
+                            <span
+                                className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                                    form.assumeTableNumberCustomer ? 'translate-x-5' : 'translate-x-0.5'
+                                }`}
+                            />
+                        </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-semibold text-gray-700">Assume Table Number (Waiter)</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">Skip manual table entry for waiters when placing orders</p>
+                        </div>
+                        <button
+                            onClick={() => setForm({ ...form, assumeTableNumberWaiter: !form.assumeTableNumberWaiter })}
+                            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${form.assumeTableNumberWaiter ? 'bg-orange-500' : 'bg-gray-300'}`}
+                        >
+                            <span
+                                className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                                    form.assumeTableNumberWaiter ? 'translate-x-5' : 'translate-x-0.5'
+                                }`}
+                            />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Reward program */}
@@ -243,4 +284,4 @@ function Field({ label, children }) {
             {children}
         </div>
     );
-        }
+                        }
