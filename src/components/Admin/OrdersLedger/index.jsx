@@ -21,6 +21,11 @@ export default function OrdersLedger() {
     const [loading, setLoading] = useState(false);
     const [viewing, setViewing] = useState(null);
 
+    // ---- Pending online orders (unclaimed) ----
+    const [pendingOnline, setPendingOnline] = useState([]);
+    const [waiters, setWaiters] = useState([]);
+    const [claimBusy, setClaimBusy] = useState(false);
+
     // ---- "All" tab: paginated history, search, date filter, today summary ----
     const [allReceipts, setAllReceipts] = useState([]);
     const [allPage, setAllPage] = useState(1);
@@ -81,6 +86,16 @@ export default function OrdersLedger() {
         }
     }, []);
 
+    // ---- Pending online orders (not yet claimed by a waiter) ----
+    const fetchPendingOnline = useCallback(async () => {
+        try {
+            const res = await API.get('/receipts/online-pending');
+            setPendingOnline(res.data);
+        } catch (err) {
+            console.error('Failed to fetch pending online orders', err);
+        }
+    }, []);
+
     const fetchAllReceipts = useCallback(async (page = 1) => {
         setAllLoading(true);
         try {
@@ -102,7 +117,9 @@ export default function OrdersLedger() {
     useEffect(() => {
         fetchData();
         fetchSummary();
-    }, [fetchData, fetchSummary]);
+        fetchPendingOnline();
+        API.get('/auth/waiters').then((res) => setWaiters(res.data)).catch(() => {});
+    }, [fetchData, fetchSummary, fetchPendingOnline]);
 
     useEffect(() => {
         if (tab !== 'all') return;
@@ -120,13 +137,40 @@ export default function OrdersLedger() {
         });
         socket.on('receipt:updated', () => {
             fetchData();
+            fetchPendingOnline();
             if (tab === 'all') fetchAllReceipts(allPage);
+        });
+        socket.on('order:created', ({ source } = {}) => {
+            if (source === 'online') {
+                fetchPendingOnline();
+                toast.info('🔔 New online order awaiting a waiter');
+            }
+        });
+        socket.on('order:updated', () => {
+            fetchPendingOnline();
+            fetchData();
         });
         return () => socket.disconnect();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => () => { if (pollTimer.current) clearInterval(pollTimer.current); }, []);
+
+    // ---- Claim an online order on behalf of a waiter ----
+    const handleClaimOnlineOrder = async (receipt, waiterName) => {
+        if (!waiterName) return;
+        setClaimBusy(true);
+        try {
+            await API.patch(`/orders/${receipt.order}/assign`, { waiterName });
+            setPendingOnline((prev) => prev.filter((r) => r._id !== receipt._id));
+            toast.success(`Assigned to ${waiterName}`);
+            fetchData();
+        } catch (err) {
+            console.error('Failed to assign waiter', err);
+            toast.error(err.response?.data?.message || 'Failed to assign waiter');
+        }
+        setClaimBusy(false);
+    };
 
     // ---- Payment flow ----
 
@@ -370,7 +414,13 @@ export default function OrdersLedger() {
         return 'bg-amber-50/40 hover:bg-amber-50/70';
     };
 
-    const rows = tab === 'unpaid' ? unpaid : tab === 'paid' ? paidList : allReceipts;
+    const rows = tab === 'unpaid'
+        ? unpaid
+        : tab === 'paid'
+        ? paidList
+        : tab === 'pending-online'
+        ? pendingOnline
+        : allReceipts;
 
     return (
         <div className="space-y-8 bg-gray-50 text-gray-800">
@@ -380,7 +430,7 @@ export default function OrdersLedger() {
                     <p className="text-sm text-gray-500">Track unpaid bills and payment history</p>
                 </div>
                 <button
-                    onClick={() => { fetchData(); fetchSummary(); if (tab === 'all') fetchAllReceipts(allPage); }}
+                    onClick={() => { fetchData(); fetchSummary(); fetchPendingOnline(); if (tab === 'all') fetchAllReceipts(allPage); }}
                     className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-orange-500/40 text-gray-500 hover:text-orange-500 px-3 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                 >
                     <RefreshCw size={14} className={loading || allLoading ? 'animate-spin' : ''} />
@@ -396,6 +446,7 @@ export default function OrdersLedger() {
                 unpaidCount={unpaid.length}
                 paidCount={paidList.length}
                 allTotal={allTotal}
+                pendingOnlineCount={pendingOnline.length}
             />
 
             {tab === 'all' && (
@@ -423,6 +474,9 @@ export default function OrdersLedger() {
                 allTotalPages={allTotalPages}
                 allTotal={allTotal}
                 fetchAllReceipts={fetchAllReceipts}
+                waiters={waiters}
+                claimBusy={claimBusy}
+                onClaim={handleClaimOnlineOrder}
             />
 
             <ViewItemsModal
@@ -478,4 +532,4 @@ export default function OrdersLedger() {
             />
         </div>
     );
-}
+        }
