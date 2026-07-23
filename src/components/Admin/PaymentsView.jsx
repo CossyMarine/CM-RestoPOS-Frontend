@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
-import ViewItemsModal from './ViewItemsModal';
+import PaymentDetailsModal from './PaymentDetailsModal';
 import ConfirmModal from './ConfirmModal';
 
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
@@ -353,26 +353,10 @@ export default function PaymentsView({ onPendingChange }) {
                 </div>
             )}
 
-            <ViewItemsModal
+            <PaymentDetailsModal
                 open={!!viewing}
                 onClose={() => setViewing(null)}
-                title={viewing?.billId}
-                subtitle={viewing ? `Table ${viewing.tableNumber}` : ''}
-                items={(viewing?.items || []).map((i) => ({ name: i.mealName, qty: i.quantity, price: i.unitPrice }))}
-                total={viewing?.subtotal}
-                payment={
-                    viewing
-                        ? {
-                              method: viewing.paymentMethod,
-                              cashAmount: viewing.cashAmount,
-                              tillAmount: viewing.tillAmount,
-                              amountPaid: viewing.amountPaid,
-                              changeGiven: viewing.changeGiven,
-                              mpesaReceiptNumber: viewing.mpesaReceiptNumber,
-                              paidAt: viewing.paidAt,
-                          }
-                        : null
-                }
+                receipt={viewing}
             />
 
             <ConfirmModal
@@ -391,4 +375,4 @@ export default function PaymentsView({ onPendingChange }) {
             />
         </div>
     );
-                                }
+}
