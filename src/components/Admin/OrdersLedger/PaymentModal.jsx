@@ -13,8 +13,8 @@ export default function PaymentModal({
     setMpesaPhone,
     tillAmount,
     setTillAmount,
-    tillReference,
-    setTillReference,
+    bothMethod,
+    setBothMethod,
     processing,
     mpesaState,
     mpesaMessage,
@@ -27,6 +27,7 @@ export default function PaymentModal({
     resetPaymentState,
     handleCashPay,
     handleTillPay,
+    handleCashTillPay,
     handleSendStk,
     handleRetryMpesa,
 }) {
@@ -142,6 +143,30 @@ export default function PaymentModal({
 
                         {paymentMethod === 'both' && (
                             <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setBothMethod('prompt')}
+                                        className={`py-2 rounded-lg font-bold text-[11px] border transition-all ${
+                                            bothMethod === 'prompt'
+                                                ? 'bg-orange-500 border-orange-500 text-white'
+                                                : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-500/40'
+                                        }`}
+                                    >
+                                        Cash + Prompt
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBothMethod('till')}
+                                        className={`py-2 rounded-lg font-bold text-[11px] border transition-all ${
+                                            bothMethod === 'till'
+                                                ? 'bg-orange-500 border-orange-500 text-white'
+                                                : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-500/40'
+                                        }`}
+                                    >
+                                        Cash + Till
+                                    </button>
+                                </div>
                                 <div>
                                     <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">
                                         Cash Received
@@ -154,20 +179,23 @@ export default function PaymentModal({
                                         placeholder="e.g. 300"
                                     />
                                 </div>
-                                <div>
-                                    <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">
-                                        Customer M-Pesa Number (Prompt Portion)
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        value={mpesaPhone}
-                                        onChange={(e) => setMpesaPhone(e.target.value)}
-                                        placeholder="07XXXXXXXX"
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
-                                    />
-                                </div>
+                                {bothMethod === 'prompt' && (
+                                    <div>
+                                        <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">
+                                            Customer M-Pesa Number (Prompt Portion)
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            value={mpesaPhone}
+                                            onChange={(e) => setMpesaPhone(e.target.value)}
+                                            placeholder="07XXXXXXXX"
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
+                                        />
+                                    </div>
+                                )}
                                 <p className="text-xs text-gray-400">
-                                    Prompt amount (auto): <span className="font-bold text-gray-700">KES {tillPortion.toLocaleString()}</span>
+                                    {bothMethod === 'till' ? 'Till amount (auto)' : 'Prompt amount (auto)'}:{' '}
+                                    <span className="font-bold text-gray-700">KES {tillPortion.toLocaleString()}</span>
                                 </p>
                             </div>
                         )}
@@ -183,18 +211,6 @@ export default function PaymentModal({
                                         value={tillAmount}
                                         onChange={(e) => setTillAmount(e.target.value)}
                                         placeholder={due}
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">
-                                        M-Pesa Code or Customer Full Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={tillReference}
-                                        onChange={(e) => setTillReference(e.target.value)}
-                                        placeholder="e.g. QGH7X8Y1Z or Jane Wanjiru"
                                         className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
                                     />
                                 </div>
@@ -236,6 +252,8 @@ export default function PaymentModal({
                                         ? handleCashPay
                                         : paymentMethod === 'till'
                                         ? handleTillPay
+                                        : paymentMethod === 'both' && bothMethod === 'till'
+                                        ? handleCashTillPay
                                         : handleSendStk
                                 }
                                 disabled={
@@ -247,7 +265,9 @@ export default function PaymentModal({
                             >
                                 {processing
                                     ? 'Processing…'
-                                    : paymentMethod === 'cash' || paymentMethod === 'till'
+                                    : paymentMethod === 'cash' ||
+                                      paymentMethod === 'till' ||
+                                      (paymentMethod === 'both' && bothMethod === 'till')
                                     ? 'Confirm Payment'
                                     : 'Send Prompt'}
                             </button>
@@ -302,4 +322,4 @@ export default function PaymentModal({
             </div>
         </div>
     );
-}
+                            }
