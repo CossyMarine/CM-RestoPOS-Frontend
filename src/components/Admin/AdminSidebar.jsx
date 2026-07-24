@@ -9,6 +9,7 @@ import {
     UserCog,
     Settings,
     LogOut,
+    Boxes,
     UtensilsCrossed as Logo,
 } from 'lucide-react';
 
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'menu', label: 'Manage Menu', icon: UtensilsCrossed },
     { id: 'kitchen', label: 'Kitchen', icon: ChefHat },
+    { id: 'inventory', label: 'Inventory', icon: Boxes },
     { id: 'orders', label: 'Orders & Receipts', icon: ReceiptText },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'voids', label: 'Void Requests', icon: ShieldAlert },
