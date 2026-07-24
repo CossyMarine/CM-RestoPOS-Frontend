@@ -170,7 +170,10 @@ export default function CustomerPage() {
       if (existing) {
         return prev.map((i) => (i.id === item._id ? { ...i, qty: i.qty + 1 } : i));
       }
-      return [...prev, { id: item._id, name: item.name, price: Number(item.price), qty: 1 }];
+      return [
+        ...prev,
+        { id: item._id, name: item.name, price: Number(item.price), imageUrl: item.imageUrl || null, qty: 1 },
+      ];
     });
     toast.success(`${item.name} added to cart`);
   };
@@ -203,7 +206,9 @@ export default function CustomerPage() {
     setIsPlacingOrder(true);
     try {
       const items = cart.map((i) => ({
+        menuItemId: i.id,
         mealName: i.name,
+        imageUrl: i.imageUrl || null,
         quantity: i.qty,
         unitPrice: i.price,
       }));
