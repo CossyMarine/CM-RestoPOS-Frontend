@@ -239,11 +239,13 @@ export default function WaiterDashboard() {
     setPrintBusy(true);
     try {
       const items = cart.map((i) => ({
+        menuItemId: i._id,
         mealName: i.name,
+        imageUrl: i.imageUrl || null,
         quantity: i.qty,
         unitPrice: Number(i.price),
         lineTotal: i.qty * Number(i.price),
-      }));
+     }));
       const subtotal = items.reduce((sum, i) => sum + i.lineTotal, 0);
 
       const res = await API.post("/orders", { tableNumber, waiterName, items, subtotal });
