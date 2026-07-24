@@ -33,6 +33,7 @@ export default function KitchenNavbar({
                 {[
                     { key: 'live', label: 'Live Queue' },
                     { key: 'history', label: 'History' },
+                    { key: 'inventory', label: 'Inventory' },
                     { key: 'settings', label: 'Settings' },
                 ].map((tab) => (
                     <button
