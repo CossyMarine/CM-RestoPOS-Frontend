@@ -1,6 +1,7 @@
 import {
     LayoutDashboard,
     UtensilsCrossed,
+    ChefHat,
     ReceiptText,
     CreditCard,
     ShieldAlert,
@@ -14,6 +15,7 @@ import {
 const NAV_ITEMS = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'menu', label: 'Manage Menu', icon: UtensilsCrossed },
+    { id: 'kitchen', label: 'Kitchen', icon: ChefHat },
     { id: 'orders', label: 'Orders & Receipts', icon: ReceiptText },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'voids', label: 'Void Requests', icon: ShieldAlert },
