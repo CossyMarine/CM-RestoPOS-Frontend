@@ -67,6 +67,10 @@ export default function KitchenPage() {
 
     const [stats, setStats] = useState({ servedToday: 0, avgPrepSeconds: 0 });
 
+    // Fallback image lookup: menu items by name, in case an order item was
+    // saved without its own imageUrl snapshot.
+    const [menuImages, setMenuImages] = useState({});
+
     const [historyOrders, setHistoryOrders] = useState([]);
     const [historyPage, setHistoryPage] = useState(1);
     const [historyTotalPages, setHistoryTotalPages] = useState(1);
@@ -158,6 +162,21 @@ export default function KitchenPage() {
         }
     }, []);
 
+    // Builds a name -> imageUrl map from the live menu, used only as a
+    // fallback when an order item has no imageUrl of its own.
+    const loadMenuImages = useCallback(async () => {
+        try {
+            const res = await API.get('/menu');
+            const map = {};
+            (res.data || []).forEach((m) => {
+                map[m.name?.toLowerCase()] = m.imageUrl;
+            });
+            setMenuImages(map);
+        } catch (err) {
+            console.error('Failed to fetch menu images', err);
+        }
+    }, []);
+
     const loadHistory = useCallback(async (page = 1) => {
         setHistoryLoading(true);
         try {
@@ -183,6 +202,7 @@ export default function KitchenPage() {
         loadInitialOrders();
         loadSettings();
         loadStats();
+        loadMenuImages();
 
         const socket = io(SOCKET_URL);
         socket.emit('join_room', 'kitchen');
@@ -223,7 +243,7 @@ export default function KitchenPage() {
             socket.disconnect();
             stopAlarmLoop();
         };
-    }, [loadInitialOrders, loadSettings, loadStats, startAlarmLoop, stopAlarmLoop]);
+    }, [loadInitialOrders, loadSettings, loadStats, loadMenuImages, startAlarmLoop, stopAlarmLoop]);
 
     useEffect(() => {
         if (newOrderIds.size === 0) stopAlarmLoop();
@@ -283,6 +303,10 @@ export default function KitchenPage() {
             toast.error('Could not update item');
         }
     };
+
+    // Prefer the order item's own snapshot; fall back to the live menu by name.
+    const resolveImg = (item) =>
+        item.imageUrl || menuImages[item.mealName?.toLowerCase()] || null;
 
     const minutesAgo = (createdAt) => Math.max(0, Math.floor((now - new Date(createdAt).getTime()) / 60000));
 
@@ -417,20 +441,24 @@ export default function KitchenPage() {
                                                 : 'border-gray-200 hover:border-gray-300'
                                         }`}
                                     >
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div>
-                                                <div className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1">Table</div>
-                                                <div className={`${sizeCfg.table} font-black leading-none text-orange-500`}>
-                                                    {order.tableNumber}
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1">
-                                                    {order.waiterName || 'Online order'}
-                                                </div>
-                                                <div className={`text-lg font-black ${isCritical ? 'text-red-600' : isLate ? 'text-amber-600' : 'text-gray-700'}`}>
-                                                    {age} min ago
-                                                </div>
+                                        {/* Waiter banner — full width, edge to edge, sits above everything else */}
+                                        <div
+                                            className={`-mx-6 -mt-6 mb-4 px-6 py-3 rounded-t-2xl flex items-center justify-between gap-3 ${
+                                                isCritical ? 'bg-red-600' : isLate ? 'bg-amber-500' : 'bg-gray-900'
+                                            }`}
+                                        >
+                                            <span className="font-black text-base sm:text-lg text-white uppercase tracking-wide truncate flex items-center gap-2">
+                                                👤 {order.waiterName || 'Online order'}
+                                            </span>
+                                            <span className="text-sm font-black text-white/90 whitespace-nowrap shrink-0">
+                                                {age} min ago
+                                            </span>
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <div className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1">Table</div>
+                                            <div className={`${sizeCfg.table} font-black leading-none text-orange-500`}>
+                                                {order.tableNumber}
                                             </div>
                                         </div>
 
@@ -452,7 +480,7 @@ export default function KitchenPage() {
                                                     >
                                                         {item.ready && <span className="text-xs font-bold">✓</span>}
                                                     </span>
-                                                    <ItemImage src={item.imageUrl} alt={item.mealName} className={`${sizeCfg.img} w-auto aspect-square`} />
+                                                    <ItemImage src={resolveImg(item)} alt={item.mealName} className={`${sizeCfg.img} w-auto aspect-square`} />
                                                     <span className={`font-bold ${sizeCfg.name} flex-1 ${item.ready ? 'line-through text-gray-400' : 'text-gray-800'}`}>
                                                         {item.mealName}
                                                     </span>
@@ -776,7 +804,7 @@ export default function KitchenPage() {
                         <div className="space-y-2">
                             {(detailOrder.items || []).map((item, i) => (
                                 <div key={i} className="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
-                                    <ItemImage src={item.imageUrl} alt={item.mealName} className="h-12 w-12" />
+                                    <ItemImage src={resolveImg(item)} alt={item.mealName} className="h-12 w-12" />
                                     <span className="font-bold flex-1 text-gray-800">{item.mealName}</span>
                                     <span className="font-black text-orange-500">×{item.quantity}</span>
                                 </div>
@@ -787,4 +815,4 @@ export default function KitchenPage() {
             )}
         </div>
     );
-}
+            }
