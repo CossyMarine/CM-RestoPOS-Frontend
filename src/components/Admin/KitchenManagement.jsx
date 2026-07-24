@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ChefHat, Clock, Flame, RefreshCw, Search } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { ChefHat, Clock, Flame, RefreshCw, Search, Upload, Trash2, Play, Volume2 } from 'lucide-react';
 import API from '../../api/axios';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../utils/formatDate';
@@ -21,6 +21,207 @@ function StatCard({ icon: Icon, label, value, tint }) {
                 <div className="text-2xl font-black text-gray-900">{value}</div>
                 <div className="text-xs text-gray-500 font-semibold">{label}</div>
             </div>
+        </div>
+    );
+}
+
+// Manages the uploaded notification-sound library and lets the admin pick
+// which one is currently active for the kitchen alarm.
+function NotificationSoundManager({ settings, setSettings, onSaveSettings, savingSettings }) {
+    const [sounds, setSounds] = useState([]);
+    const [loadingSounds, setLoadingSounds] = useState(true);
+    const [newName, setNewName] = useState('');
+    const [newFile, setNewFile] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const [deletingId, setDeletingId] = useState(null);
+    const previewRef = useRef(null);
+    const fileInputRef = useRef(null);
+
+    const loadSounds = useCallback(async () => {
+        setLoadingSounds(true);
+        try {
+            const res = await API.get('/notification-sounds');
+            setSounds(res.data || []);
+        } catch (err) {
+            console.error('Failed to load notification sounds', err);
+            toast.error('Could not load notification sounds');
+        } finally {
+            setLoadingSounds(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadSounds();
+    }, [loadSounds]);
+
+    const handleUpload = async () => {
+        if (!newFile) {
+            toast.error('Choose an audio file first');
+            return;
+        }
+        if (!newName.trim()) {
+            toast.error('Give the sound a name');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('sound', newFile);
+        formData.append('name', newName.trim());
+
+        setUploading(true);
+        try {
+            const res = await API.post('/notification-sounds', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setSounds((prev) => [...prev, res.data].sort((a, b) => a.name.localeCompare(b.name)));
+            setNewName('');
+            setNewFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            toast.success('Sound uploaded');
+        } catch (err) {
+            console.error('Failed to upload notification sound', err);
+            toast.error(err.response?.data?.message || 'Upload failed');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleDelete = async (sound) => {
+        setDeletingId(sound._id);
+        try {
+            await API.delete(`/notification-sounds/${sound._id}`);
+            setSounds((prev) => prev.filter((s) => s._id !== sound._id));
+            // If the deleted sound was active, the backend already reverted
+            // kitchen settings to the default beep — mirror that locally.
+            if (settings?.notificationSoundId === sound._id) {
+                setSettings((d) => ({ ...d, notificationSoundId: null, notificationSoundUrl: null, notificationSoundName: null }));
+            }
+            toast.success('Sound deleted');
+        } catch (err) {
+            console.error('Failed to delete notification sound', err);
+            toast.error('Could not delete sound');
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const handlePreview = (sound) => {
+        if (previewRef.current) {
+            previewRef.current.pause();
+        }
+        const audio = new Audio(sound.url);
+        previewRef.current = audio;
+        audio.play().catch((err) => console.error('Preview playback failed', err));
+    };
+
+    const selectAsActive = (soundId) => {
+        setSettings((d) => ({ ...d, notificationSoundId: soundId || null }));
+    };
+
+    return (
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+            <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+                <Volume2 size={18} className="text-orange-500" /> Notification Sounds
+            </h3>
+            <p className="text-xs text-gray-500 mb-4">
+                Upload alert clips from this device and pick which one plays in the kitchen when a new order comes in.
+            </p>
+
+            <div className="flex flex-wrap gap-2 items-end mb-5 bg-gray-50 border border-gray-200 rounded-xl p-3">
+                <div className="flex-1 min-w-[140px]">
+                    <label className="text-xs text-gray-500 font-semibold block mb-1">Name</label>
+                    <input
+                        type="text"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        placeholder="e.g. Kitchen Bell"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    />
+                </div>
+                <div>
+                    <label className="text-xs text-gray-500 font-semibold block mb-1">Audio file</label>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="audio/*"
+                        onChange={(e) => setNewFile(e.target.files?.[0] || null)}
+                        className="text-sm"
+                    />
+                </div>
+                <button
+                    onClick={handleUpload}
+                    disabled={uploading}
+                    className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-lg text-sm"
+                >
+                    <Upload size={14} /> {uploading ? 'Uploading…' : 'Upload'}
+                </button>
+            </div>
+
+            {loadingSounds ? (
+                <p className="text-sm text-gray-400">Loading sounds…</p>
+            ) : (
+                <div className="space-y-2">
+                    <label
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer ${
+                            !settings.notificationSoundId ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
+                        }`}
+                    >
+                        <input
+                            type="radio"
+                            name="activeSound"
+                            checked={!settings.notificationSoundId}
+                            onChange={() => selectAsActive(null)}
+                        />
+                        <span className="text-sm font-semibold text-gray-800 flex-1">Default beep (built-in)</span>
+                    </label>
+
+                    {sounds.map((sound) => (
+                        <div
+                            key={sound._id}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${
+                                settings.notificationSoundId === sound._id ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
+                            }`}
+                        >
+                            <label className="flex items-center gap-3 flex-1 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="activeSound"
+                                    checked={settings.notificationSoundId === sound._id}
+                                    onChange={() => selectAsActive(sound._id)}
+                                />
+                                <span className="text-sm font-semibold text-gray-800">{sound.name}</span>
+                            </label>
+                            <button
+                                onClick={() => handlePreview(sound)}
+                                className="text-gray-400 hover:text-orange-600 p-1"
+                                title="Preview"
+                            >
+                                <Play size={16} />
+                            </button>
+                            <button
+                                onClick={() => handleDelete(sound)}
+                                disabled={deletingId === sound._id}
+                                className="text-gray-400 hover:text-red-600 p-1 disabled:opacity-50"
+                                title="Delete"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                    ))}
+
+                    {sounds.length === 0 && (
+                        <p className="text-sm text-gray-400 py-2">No custom sounds uploaded yet.</p>
+                    )}
+                </div>
+            )}
+
+            <button
+                onClick={onSaveSettings}
+                disabled={savingSettings}
+                className="mt-4 w-full bg-gray-900 hover:bg-black disabled:opacity-50 text-white font-bold py-2.5 rounded-lg text-sm"
+            >
+                {savingSettings ? 'Saving…' : 'Save Active Sound'}
+            </button>
         </div>
     );
 }
@@ -417,6 +618,13 @@ export default function KitchenManagement() {
                         </button>
                     </div>
 
+                    <NotificationSoundManager
+                        settings={settings}
+                        setSettings={setSettings}
+                        onSaveSettings={saveSettings}
+                        savingSettings={savingSettings}
+                    />
+
                     <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
                         <h3 className="font-bold text-gray-900 mb-3">Urgency Thresholds (minutes)</h3>
                         <div className="flex gap-4">
@@ -499,4 +707,4 @@ export default function KitchenManagement() {
             )}
         </div>
     );
-    }
+            }
