@@ -11,6 +11,7 @@ import LiveQueueTab from '../components/Kitchen/LiveQueueTab';
 import HistoryTab from '../components/Kitchen/HistoryTab';
 import KitchenSettingsTab from '../components/Kitchen/KitchenSettingsTab';
 import OrderDetailModal from '../components/Kitchen/OrderDetailModal';
+import InventoryTab from '../components/Kitchen/InventoryTab';
 
 // Socket.IO runs on the same server as the API
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
@@ -342,6 +343,8 @@ export default function KitchenPage() {
                     onViewDetail={setDetailOrder}
                 />
             )}
+
+            {activeTab === 'inventory' && <InventoryTab />}
 
             {activeTab === 'settings' && (
                 <KitchenSettingsTab
