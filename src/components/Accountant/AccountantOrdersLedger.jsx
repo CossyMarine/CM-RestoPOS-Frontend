@@ -8,7 +8,7 @@ import ViewItemsModal from '../Admin/ViewItemsModal';
 import SummaryCards from '../Admin/OrdersLedger/SummaryCards';
 import HistoryFilters from '../Admin/OrdersLedger/HistoryFilters';
 import OrdersTable from '../Admin/OrdersLedger/OrdersTable';
-import ComboPayModal from './ComboPayModal';
+import ComboPayModal from '../Admin/OrdersLedger/ComboPayModal';
 
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
