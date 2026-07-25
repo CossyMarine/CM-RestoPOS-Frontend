@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, X, Boxes, PackagePlus, Ruler, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Boxes, PackagePlus, Ruler, AlertTriangle, ClipboardList } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import ConfirmModal from './ConfirmModal';
+import UsageReport from '../Inventory/UsageReport';
 
 const EMPTY_ITEM = { name: '', unit: '', category: 'General', costPerUnit: '', reorderLevel: '' };
 const EMPTY_UNIT = { name: '', abbreviation: '' };
@@ -29,6 +30,8 @@ export default function InventoryManagement() {
 
     const [stockForm, setStockForm] = useState(EMPTY_STOCK);
     const [savingStock, setSavingStock] = useState(false);
+
+    const [showUsageReport, setShowUsageReport] = useState(false);
 
     const fetchItems = async () => {
         try {
@@ -220,13 +223,20 @@ export default function InventoryManagement() {
                     <h2 className="text-2xl font-black text-gray-800">Inventory</h2>
                     <p className="text-sm text-gray-500">Stock, ingredients and usage — fully custom to this kitchen</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     <SummaryCard label="Current Stock Value" value={`KES ${summary.currentStockValue?.toLocaleString() || 0}`} />
                     <SummaryCard
                         label="Low Stock Items"
                         value={summary.lowStockCount || 0}
                         tone={summary.lowStockCount > 0 ? 'danger' : 'default'}
                     />
+                    <button
+                        onClick={() => setShowUsageReport(true)}
+                        className="flex items-center gap-2 bg-white border border-gray-200 hover:border-orange-400 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors"
+                    >
+                        <ClipboardList size={15} className="text-orange-500" />
+                        Usage Report
+                    </button>
                 </div>
             </div>
 
@@ -594,6 +604,8 @@ export default function InventoryManagement() {
                 onClose={() => setPendingDeleteUnit(null)}
             />
 
+            {showUsageReport && <UsageReport onClose={() => setShowUsageReport(false)} />}
+
             <style>{`
                 .input {
                     width: 100%;
@@ -634,4 +646,4 @@ function SummaryCard({ label, value, tone = 'default' }) {
             <p className={`text-lg font-black ${tone === 'danger' ? 'text-red-600' : 'text-gray-800'}`}>{value}</p>
         </div>
     );
-          }
+                }
