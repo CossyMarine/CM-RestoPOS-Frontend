@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Wallet, Landmark, Smartphone, Gift, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
@@ -16,6 +16,16 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const [mpesaState, setMpesaState] = useState('idle'); // idle | pending | success | failed
     const [mpesaMessage, setMpesaMessage] = useState('');
     const [remaining, setRemaining] = useState(due);
+
+    // Re-sync balance + clear stale inputs whenever a new receipt is selected for payment.
+    useEffect(() => {
+        if (receipt) {
+            setRemaining(Number((receipt.subtotal - (receipt.amountPaid || 0)).toFixed(2)));
+            setCash(''); setTill(''); setReward(''); setRewardIdentifier('');
+            setPromptPhone(''); setMpesaState('idle'); setMpesaMessage('');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [receipt?._id]);
 
     const entered = (parseFloat(cash) || 0) + (parseFloat(till) || 0) + (parseFloat(reward) || 0);
     const afterApply = useMemo(() => Number((remaining - entered).toFixed(2)), [remaining, entered]);
@@ -159,4 +169,4 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
             </div>
         </div>
     );
-              }
+}
