@@ -17,17 +17,7 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const [mpesaMessage, setMpesaMessage] = useState('');
     const [remaining, setRemaining] = useState(0);
 
-    // Re-sync balance + clear stale inputs whenever a new receipt is selected for payment.
-    useEffect(() => {
-        if (receipt) {
-            setRemaining(Number((receipt.subtotal - (receipt.amountPaid || 0)).toFixed(2)));
-        }
-        reset();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [receipt?._id]);
-
-    if (!receipt) return null;
-
+    // Declared BEFORE the effect below uses it — avoids the TDZ crash.
     const reset = () => {
         setPaymentMethod('');
         setAmountPaid('');
@@ -44,6 +34,17 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const handleClose = () => { reset(); onClose(); };
 
     const refreshAfterPayment = () => onPaid?.();
+
+    // Re-sync balance + clear stale inputs whenever a new receipt is selected for payment.
+    useEffect(() => {
+        if (receipt) {
+            setRemaining(Number((receipt.subtotal - (receipt.amountPaid || 0)).toFixed(2)));
+        }
+        reset();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [receipt?._id]);
+
+    if (!receipt) return null;
 
     // Auto-calculated remaining leg under "Both" — recalculates live as cash is typed,
     // instead of sitting stuck on the full total.
@@ -492,4 +493,4 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
             </div>
         </div>
     );
-                                }
+                }
