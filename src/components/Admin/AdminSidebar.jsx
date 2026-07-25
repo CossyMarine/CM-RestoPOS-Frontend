@@ -1,19 +1,10 @@
 import {
-    LayoutDashboard,
-    UtensilsCrossed,
-    ChefHat,
-    ReceiptText,
-    CreditCard,
-    ShieldAlert,
-    Users,
-    UserCog,
-    Settings,
-    LogOut,
-    Boxes,
+    LayoutDashboard, UtensilsCrossed, ChefHat, ReceiptText, CreditCard,
+    ShieldAlert, Users, UserCog, Settings, LogOut, Boxes,
     UtensilsCrossed as Logo,
 } from 'lucide-react';
 
-const NAV_ITEMS = [
+export const ADMIN_NAV_ITEMS = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'menu', label: 'Manage Menu', icon: UtensilsCrossed },
     { id: 'kitchen', label: 'Kitchen', icon: ChefHat },
@@ -23,10 +14,14 @@ const NAV_ITEMS = [
     { id: 'voids', label: 'Void Requests', icon: ShieldAlert },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'waiters', label: 'Waiter Management', icon: UserCog },
+    { id: 'accountants', label: 'Accountants', icon: UserCog },
     { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-export default function AdminSidebar({ activeView, onNavigate, user, onLogout, pendingPaymentsCount = 0 }) {
+export default function AdminSidebar({
+    activeView, onNavigate, user, onLogout, pendingPaymentsCount = 0,
+    navItems = ADMIN_NAV_ITEMS, title = 'Management Console', extra = null,
+}) {
     return (
         <aside className="w-64 bg-slate-900 h-screen sticky top-0 flex flex-col justify-between shrink-0 shadow-lg z-20">
             <div className="p-6">
@@ -37,11 +32,13 @@ export default function AdminSidebar({ activeView, onNavigate, user, onLogout, p
                     </span>
                 </div>
                 <p className="text-[11px] uppercase tracking-wider font-bold text-slate-500 mt-0.5">
-                    Management Console
+                    {title}
                 </p>
 
+                {extra}
+
                 <nav className="mt-8 space-y-1">
-                    {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
+                    {navItems.map(({ id, label, icon: Icon }) => {
                         const active = activeView === id;
                         const badge = id === 'payments' ? pendingPaymentsCount : 0;
                         return (
@@ -69,7 +66,7 @@ export default function AdminSidebar({ activeView, onNavigate, user, onLogout, p
 
             <div className="p-6 border-t border-slate-800 bg-slate-950/30">
                 <p className="text-xs text-slate-500 font-medium truncate mb-3">
-                    {user?.fullName || 'Authorized Admin'}
+                    {user?.fullName || 'Authorized User'}
                 </p>
                 <button
                     onClick={onLogout}
