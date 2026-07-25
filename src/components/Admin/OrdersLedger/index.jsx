@@ -115,11 +115,16 @@ export default function OrdersLedger() {
         setAllLoading(false);
     }, [search, dateFrom, dateTo]);
 
+    // Load unpaid, paid, pending-online, AND the "all" count/list up front —
+    // so every tab badge is accurate the moment the page mounts, not just
+    // after it's clicked.
     useEffect(() => {
         fetchData();
         fetchSummary();
         fetchPendingOnline();
+        fetchAllReceipts(1);
         API.get('/auth/waiters').then((res) => setWaiters(res.data)).catch(() => {});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchData, fetchSummary, fetchPendingOnline]);
 
     useEffect(() => {
@@ -134,17 +139,17 @@ export default function OrdersLedger() {
         socket.on('receipt:paid', () => {
             fetchData();
             fetchSummary();
-            if (tab === 'all') fetchAllReceipts(allPage);
+            fetchAllReceipts(allPage);
         });
         socket.on('receipt:updated', () => {
             fetchData();
             fetchPendingOnline();
-            if (tab === 'all') fetchAllReceipts(allPage);
+            fetchAllReceipts(allPage);
         });
         socket.on('order:created', ({ source } = {}) => {
             fetchData();
             fetchSummary();
-            if (tab === 'all') fetchAllReceipts(allPage);
+            fetchAllReceipts(allPage);
             if (source === 'online') {
                 fetchPendingOnline();
                 toast.info('🔔 New online order awaiting a waiter');
@@ -198,7 +203,7 @@ export default function OrdersLedger() {
     const refreshAfterPayment = () => {
         fetchData();
         fetchSummary();
-        if (tab === 'all') fetchAllReceipts(allPage);
+        fetchAllReceipts(allPage);
     };
 
     const balanceDue = (r) => Number((r.subtotal - (r.amountPaid || 0)).toFixed(2));
@@ -434,7 +439,7 @@ export default function OrdersLedger() {
                     <p className="text-sm text-gray-500">Track unpaid bills and payment history</p>
                 </div>
                 <button
-                    onClick={() => { fetchData(); fetchSummary(); fetchPendingOnline(); if (tab === 'all') fetchAllReceipts(allPage); }}
+                    onClick={() => { fetchData(); fetchSummary(); fetchPendingOnline(); fetchAllReceipts(allPage); }}
                     className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-orange-500/40 text-gray-500 hover:text-orange-500 px-3 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                 >
                     <RefreshCw size={14} className={loading || allLoading ? 'animate-spin' : ''} />
@@ -536,4 +541,4 @@ export default function OrdersLedger() {
             />
         </div>
     );
-    }
+}
