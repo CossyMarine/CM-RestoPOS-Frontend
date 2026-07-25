@@ -1,103 +1,93 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
-import { formatCurrency } from '../utils/formatCurrency';
-import { formatDate } from '../utils/formatDate';
+import API from '../api/axios';
+import AdminSidebar from '../components/Admin/AdminSidebar';
+import ShiftBar from '../components/Accountant/ShiftBar';
+import AccountantOrdersLedger from '../components/Accountant/AccountantOrdersLedger';
+import PaymentsView from '../components/Admin/PaymentsView';
+import VoidRequestsView from '../components/Admin/VoidRequestsView';
+import InventoryManagement from '../components/Admin/InventoryManagement';
+import MenuManagement from '../components/Admin/MenuManagement';
+import UsersManagement from '../components/Admin/UsersManagement';
+import SettingsManagement from '../components/Admin/SettingsManagement';
+import WaiterManagement from '../components/Admin/WaiterManagement';
+import KitchenManagement from '../components/Admin/KitchenManagement';
+import {
+    ReceiptText, CreditCard, ShieldAlert, Boxes, UtensilsCrossed, Users, UserCog, Settings, ChefHat,
+} from 'lucide-react';
+
+const MODULE_MAP = {
+    ordersReceipts: { id: 'orders', label: 'Orders & Receipts', icon: ReceiptText, Component: AccountantOrdersLedger },
+    payments: { id: 'payments', label: 'Payments', icon: CreditCard, Component: PaymentsView },
+    voidRequests: { id: 'voids', label: 'Void Requests', icon: ShieldAlert, Component: VoidRequestsView },
+    inventory: { id: 'inventory', label: 'Inventory', icon: Boxes, Component: InventoryManagement },
+    manageMenu: { id: 'menu', label: 'Manage Menu', icon: UtensilsCrossed, Component: MenuManagement },
+    users: { id: 'users', label: 'Users', icon: Users, Component: UsersManagement },
+    waiterManagement: { id: 'waiters', label: 'Waiter Management', icon: UserCog, Component: WaiterManagement },
+    kitchen: { id: 'kitchen', label: 'Kitchen', icon: ChefHat, Component: KitchenManagement },
+    settings: { id: 'settings', label: 'Settings', icon: Settings, Component: SettingsManagement },
+};
+
+// Fixed display order regardless of permissions object key order
+const MODULE_ORDER = ['ordersReceipts', 'payments', 'voidRequests', 'inventory', 'manageMenu', 'waiterManagement', 'kitchen', 'users', 'settings'];
 
 export default function AccountantPage() {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
+    const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
+    const [shiftOpen, setShiftOpen] = useState(null);
 
-    const [revenue, setRevenue] = useState({ totalRevenue: 0, paidReceiptsCount: 0 });
-    const [receipts, setReceipts] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const permissions = user?.permissions || {};
+    const enabledModules = MODULE_ORDER.filter((key) => permissions[key]).map((key) => MODULE_MAP[key]);
+    const [activeView, setActiveView] = useState('orders');
 
     useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const [revRes, receiptsRes] = await Promise.all([
-                API.get('/revenue/today'),
-                API.get('/receipts/paid'),
-            ]);
-            setRevenue(revRes.data);
-            setReceipts(receiptsRes.data);
-        } catch (err) {
-            console.error('Failed to fetch accountant data', err);
+        if (enabledModules.length && !enabledModules.some((m) => m.id === activeView)) {
+            setActiveView(enabledModules[0].id);
         }
-        setLoading(false);
-    };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
+
+    const fetchPendingCount = useCallback(() => {
+        if (!permissions.payments) return;
+        API.get('/payments/pending/count').then((res) => setPendingPaymentsCount(res.data.count || 0)).catch(() => {});
+    }, [permissions.payments]);
+
+    useEffect(() => { fetchPendingCount(); }, [fetchPendingCount]);
 
     const handleLogout = async () => {
         await logout();
         navigate('/login');
     };
 
+    const navItems = enabledModules.map(({ id, label, icon }) => ({ id, label, icon }));
+    const active = enabledModules.find((m) => m.id === activeView) || enabledModules[0];
+    const ActiveComponent = active?.Component;
+
     return (
-        <div className="min-h-screen bg-gray-950 text-white">
-            <nav className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <span className="text-xl">🍴</span>
-                    <span className="font-black text-lg">Resto<span className="text-orange-500">POS</span> <span className="text-gray-500 font-semibold text-sm">Accounts</span></span>
-                </div>
-                <div className="flex items-center gap-4">
-                    <span className="text-gray-400 text-sm">👤 {user?.fullName}</span>
-                    <button onClick={handleLogout} className="text-gray-400 hover:text-white text-sm font-semibold transition-colors">
-                        Sign Out
-                    </button>
-                </div>
-            </nav>
-
-            <div className="max-w-4xl mx-auto px-6 py-8">
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
-                        <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">Today's Revenue</p>
-                        <p className="text-3xl font-black text-orange-500">{formatCurrency(revenue.totalRevenue)}</p>
+        <div className="min-h-screen bg-gray-50 text-gray-800 flex">
+            <AdminSidebar
+                activeView={activeView}
+                onNavigate={setActiveView}
+                user={user}
+                onLogout={handleLogout}
+                pendingPaymentsCount={pendingPaymentsCount}
+                navItems={navItems}
+                title="Accounts Console"
+            />
+            <main className="flex-1 p-8 overflow-y-auto h-screen">
+                <ShiftBar onShiftChange={setShiftOpen} />
+                {ActiveComponent ? (
+                    active.id === 'orders'
+                        ? <ActiveComponent shiftOpen={!!shiftOpen} />
+                        : <ActiveComponent onPendingChange={fetchPendingCount} />
+                ) : (
+                    <div className="text-center text-gray-400 py-24">
+                        No sections are enabled on your account yet — ask an admin to grant access.
                     </div>
-                    <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
-                        <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">Paid Receipts Today</p>
-                        <p className="text-3xl font-black text-white">{revenue.paidReceiptsCount}</p>
-                    </div>
-                </div>
-
-                <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-black">Paid Receipts</h2>
-                        <button onClick={fetchData} className="text-gray-400 hover:text-white text-sm">↻ Refresh</button>
-                    </div>
-
-                    {loading ? (
-                        <div className="text-center text-gray-600 py-16">Loading…</div>
-                    ) : receipts.length === 0 ? (
-                        <div className="text-center text-gray-600 py-16">
-                            <div className="text-5xl mb-3">🧾</div>
-                            <div className="font-bold">No paid receipts yet</div>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {receipts.map((r) => (
-                                <div key={r._id} className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <span className="font-bold text-orange-400">{r.billId}</span>
-                                            <span className="text-gray-500 text-sm ml-2">Table {r.tableNumber}</span>
-                                        </div>
-                                        <span className="font-black text-white">{formatCurrency(r.subtotal)}</span>
-                                    </div>
-                                    <div className="text-xs text-gray-500 mt-1 flex items-center justify-between">
-                                        <span>Waiter: {r.waiterName} · {r.paymentMethod}</span>
-                                        <span>{r.paidAt ? formatDate(r.paidAt) : ''}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
+                )}
+            </main>
         </div>
     );
 }
