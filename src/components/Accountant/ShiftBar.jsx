@@ -83,7 +83,7 @@ export default function ShiftBar({ onShiftChange }) {
                     {shift ? <Unlock size={16} className="text-emerald-600" /> : <LockKeyhole size={16} className="text-amber-600" />}
                     {shift ? (
                         <span className="text-emerald-700">
-                            Shift open · started {new Date(shift.createdAt).toLocaleTimeString()} · float KES {shift.openingFloat.toLocaleString()}
+                            Shift open · started {new Date(shift.createdAt).toLocaleTimeString()}
                         </span>
                     ) : (
                         <span className="text-amber-700">No shift open — open one to process payments</span>
@@ -150,4 +150,4 @@ export default function ShiftBar({ onShiftChange }) {
             )}
         </>
     );
-}
+                }
