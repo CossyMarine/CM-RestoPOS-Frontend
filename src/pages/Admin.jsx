@@ -15,6 +15,7 @@ import SettingsManagement from '../components/Admin/SettingsManagement';
 import WaiterManagement from '../components/Admin/WaiterManagement';
 import KitchenManagement from '../components/Admin/KitchenManagement';
 import InventoryManagement from '../components/Admin/InventoryManagement';
+import AccountantManagement from '../components/Admin/AccountantManagement';
 
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
@@ -28,6 +29,7 @@ const VIEWS = {
     voids: VoidRequestsView,
     users: UsersManagement,
     waiters: WaiterManagement,
+    accountants: AccountantManagement,
     settings: SettingsManagement,
 };
 
