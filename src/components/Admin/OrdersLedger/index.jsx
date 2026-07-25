@@ -1,3 +1,4 @@
+// src/components/Admin/OrdersLedger/index.jsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { RefreshCw } from 'lucide-react';
@@ -141,6 +142,9 @@ export default function OrdersLedger() {
             if (tab === 'all') fetchAllReceipts(allPage);
         });
         socket.on('order:created', ({ source } = {}) => {
+            fetchData();
+            fetchSummary();
+            if (tab === 'all') fetchAllReceipts(allPage);
             if (source === 'online') {
                 fetchPendingOnline();
                 toast.info('🔔 New online order awaiting a waiter');
@@ -532,4 +536,4 @@ export default function OrdersLedger() {
             />
         </div>
     );
-        }
+    }
