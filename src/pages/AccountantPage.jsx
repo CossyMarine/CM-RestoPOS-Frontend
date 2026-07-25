@@ -77,7 +77,7 @@ export default function AccountantPage() {
                 title="Accounts Console"
             />
             <main className="flex-1 p-8 overflow-y-auto h-screen">
-                <ShiftBar onShiftChange={setShiftOpen} />
+                {permissions.payments && <ShiftBar onShiftChange={setShiftOpen} />}
                 {ActiveComponent ? (
                     active.id === 'orders'
                         ? <ActiveComponent shiftOpen={!!shiftOpen} />
@@ -90,4 +90,4 @@ export default function AccountantPage() {
             </main>
         </div>
     );
-}
+            }
