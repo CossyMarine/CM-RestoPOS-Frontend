@@ -1,3 +1,4 @@
+// src/components/Accountant/AccountantOrdersLedger.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { RefreshCw } from 'lucide-react';
@@ -85,6 +86,8 @@ export default function AccountantOrdersLedger({ shiftOpen }) {
         const socket = io(SOCKET_URL);
         socket.on('receipt:paid', () => { fetchData(); fetchSummary(); if (tab === 'all') fetchAllReceipts(allPage); });
         socket.on('receipt:updated', () => { fetchData(); if (tab === 'all') fetchAllReceipts(allPage); });
+        socket.on('order:created', () => { fetchData(); fetchSummary(); if (tab === 'all') fetchAllReceipts(allPage); });
+        socket.on('order:updated', () => { fetchData(); if (tab === 'all') fetchAllReceipts(allPage); });
         return () => socket.disconnect();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -180,4 +183,4 @@ export default function AccountantOrdersLedger({ shiftOpen }) {
             />
         </div>
     );
-          }
+}
