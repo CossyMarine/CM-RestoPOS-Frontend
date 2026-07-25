@@ -27,6 +27,8 @@ export default function OrdersTable({
     allTotalPages,
     allTotal,
     fetchAllReceipts,
+
+    showRewardButton = true, // NEW — accountant combo-pay folds reward in, so hide this
 }) {
     return (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
@@ -159,17 +161,19 @@ export default function OrdersTable({
                                                         Pay
                                                     </button>
 
-                                                    <button
-                                                        onClick={() =>
-                                                            setRewardPayTarget(
-                                                                r
-                                                            )
-                                                        }
-                                                        className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700 text-xs font-bold transition-colors"
-                                                    >
-                                                        <Gift size={13} />
-                                                        Reward
-                                                    </button>
+                                                    {showRewardButton && (
+                                                        <button
+                                                            onClick={() =>
+                                                                setRewardPayTarget(
+                                                                    r
+                                                                )
+                                                            }
+                                                            className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700 text-xs font-bold transition-colors"
+                                                        >
+                                                            <Gift size={13} />
+                                                            Reward
+                                                        </button>
+                                                    )}
                                                 </>
                                             )}
                                     </td>
@@ -213,4 +217,4 @@ export default function OrdersTable({
             )}
         </div>
     );
-                        }
+                                                }
