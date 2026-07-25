@@ -73,7 +73,14 @@ export default function AccountantOrdersLedger({ shiftOpen }) {
         setAllLoading(false);
     }, [search, dateFrom, dateTo]);
 
-    useEffect(() => { fetchData(); fetchSummary(); }, [fetchData, fetchSummary]);
+    // Load unpaid, paid, AND the "all" count/list up front — so the tab badge
+    // is accurate the moment the page mounts, not just after it's clicked.
+    useEffect(() => {
+        fetchData();
+        fetchSummary();
+        fetchAllReceipts(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fetchData, fetchSummary]);
 
     useEffect(() => {
         if (tab !== 'all') return;
@@ -84,10 +91,10 @@ export default function AccountantOrdersLedger({ shiftOpen }) {
 
     useEffect(() => {
         const socket = io(SOCKET_URL);
-        socket.on('receipt:paid', () => { fetchData(); fetchSummary(); if (tab === 'all') fetchAllReceipts(allPage); });
-        socket.on('receipt:updated', () => { fetchData(); if (tab === 'all') fetchAllReceipts(allPage); });
-        socket.on('order:created', () => { fetchData(); fetchSummary(); if (tab === 'all') fetchAllReceipts(allPage); });
-        socket.on('order:updated', () => { fetchData(); if (tab === 'all') fetchAllReceipts(allPage); });
+        socket.on('receipt:paid', () => { fetchData(); fetchSummary(); fetchAllReceipts(allPage); });
+        socket.on('receipt:updated', () => { fetchData(); fetchAllReceipts(allPage); });
+        socket.on('order:created', () => { fetchData(); fetchSummary(); fetchAllReceipts(allPage); });
+        socket.on('order:updated', () => { fetchData(); fetchAllReceipts(allPage); });
         return () => socket.disconnect();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -121,7 +128,7 @@ export default function AccountantOrdersLedger({ shiftOpen }) {
                     <p className="text-sm text-gray-500">View bills and process payments</p>
                 </div>
                 <button
-                    onClick={() => { fetchData(); fetchSummary(); if (tab === 'all') fetchAllReceipts(allPage); }}
+                    onClick={() => { fetchData(); fetchSummary(); fetchAllReceipts(allPage); }}
                     className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-orange-500/40 text-gray-500 hover:text-orange-500 px-3 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                 >
                     <RefreshCw size={14} className={loading || allLoading ? 'animate-spin' : ''} />
@@ -179,8 +186,8 @@ export default function AccountantOrdersLedger({ shiftOpen }) {
             <ComboPayModal
                 receipt={paying}
                 onClose={() => setPaying(null)}
-                onPaid={() => { fetchData(); fetchSummary(); if (tab === 'all') fetchAllReceipts(allPage); }}
+                onPaid={() => { fetchData(); fetchSummary(); fetchAllReceipts(allPage); }}
             />
         </div>
     );
-}
+                           }
