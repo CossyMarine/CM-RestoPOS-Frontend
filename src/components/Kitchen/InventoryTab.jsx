@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { PackageMinus, Search, AlertTriangle, X } from 'lucide-react';
+import { PackageMinus, Search, AlertTriangle, X, ClipboardList } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
+import UsageReport from '../Inventory/UsageReport';
 
 export default function InventoryTab() {
     const [items, setItems] = useState([]);
@@ -11,6 +12,7 @@ export default function InventoryTab() {
     const [reason, setReason] = useState('used');
     const [note, setNote] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [showUsageReport, setShowUsageReport] = useState(false);
 
     const fetchItems = async () => {
         try {
@@ -67,19 +69,28 @@ export default function InventoryTab() {
 
     return (
         <div className="p-6 max-w-5xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <div>
                     <h2 className="text-xl font-black text-gray-800">Kitchen Inventory</h2>
                     <p className="text-sm text-gray-500">Log what you use — stock updates instantly</p>
                 </div>
-                <div className="relative w-64">
-                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search items…"
-                        className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-400"
-                    />
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowUsageReport(true)}
+                        className="flex items-center gap-2 bg-white border border-gray-200 hover:border-orange-400 text-gray-700 px-3 py-2 rounded-xl text-sm font-bold shadow-sm transition-colors shrink-0"
+                    >
+                        <ClipboardList size={15} className="text-orange-500" />
+                        Usage
+                    </button>
+                    <div className="relative w-64">
+                        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search items…"
+                            className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-400"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -199,6 +210,8 @@ export default function InventoryTab() {
                     </div>
                 </div>
             )}
+
+            {showUsageReport && <UsageReport onClose={() => setShowUsageReport(false)} />}
         </div>
     );
-        }
+            }
