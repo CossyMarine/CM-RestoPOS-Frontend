@@ -6,8 +6,6 @@ import API from '../../api/axios';
 export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const [paymentMethod, setPaymentMethod] = useState(''); // 'cash' | 'prompt' | 'both' | 'till' | 'reward'
     const [amountPaid, setAmountPaid] = useState('');
-    const [cashPortion, setCashPortion] = useState('');
-    const [bothMethod, setBothMethod] = useState('prompt'); // 'prompt' | 'till'
     const [mpesaPhone, setMpesaPhone] = useState('');
     const [tillAmount, setTillAmount] = useState('');
     const [rewardAmount, setRewardAmount] = useState('');
@@ -17,18 +15,26 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const [mpesaMessage, setMpesaMessage] = useState('');
     const [remaining, setRemaining] = useState(0);
 
+    // ---- "Both" — cash + till entered simultaneously, applied together ----
+    const [comboCash, setComboCash] = useState('');
+    const [comboTill, setComboTill] = useState('');
+    const [comboPromptPhone, setComboPromptPhone] = useState('');
+    const [comboApplying, setComboApplying] = useState(false);
+    const [comboSendingPrompt, setComboSendingPrompt] = useState(false);
+
     // Declared BEFORE the effect below uses it — avoids the TDZ crash.
     const reset = () => {
         setPaymentMethod('');
         setAmountPaid('');
-        setCashPortion('');
-        setBothMethod('prompt');
         setMpesaPhone('');
         setTillAmount('');
         setRewardAmount('');
         setRewardIdentifier('');
         setMpesaState('idle');
         setMpesaMessage('');
+        setComboCash('');
+        setComboTill('');
+        setComboPromptPhone('');
     };
 
     const handleClose = () => { reset(); onClose(); };
@@ -46,12 +52,6 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
 
     if (!receipt) return null;
 
-    // Auto-calculated remaining leg under "Both" — recalculates live as cash is typed,
-    // instead of sitting stuck on the full total.
-    const tillPortion = paymentMethod === 'both'
-        ? Math.max(Number((remaining - (parseFloat(cashPortion) || 0)).toFixed(2)), 0)
-        : remaining;
-
     const cashChange = paymentMethod === 'cash' && amountPaid
         ? parseFloat(amountPaid) - remaining
         : null;
@@ -59,6 +59,10 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const rewardRemainder = paymentMethod === 'reward'
         ? Math.max(Number((remaining - (parseFloat(rewardAmount) || 0)).toFixed(2)), 0)
         : remaining;
+
+    // Both: live combined total + remaining, recalculates as either field changes.
+    const comboEntered = (parseFloat(comboCash) || 0) + (parseFloat(comboTill) || 0);
+    const comboAfterApply = Number((remaining - comboEntered).toFixed(2));
 
     // ---- Cash (full balance only) ----
     const handleCashPay = async () => {
@@ -108,39 +112,11 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
         setProcessing(false);
     };
 
-    // ---- Both: Cash + Till (fully settles the bill) ----
-    const handleCashTillPay = async () => {
-        const cashAmount = parseFloat(cashPortion);
-        if (isNaN(cashAmount) || cashAmount <= 0 || cashAmount >= remaining) {
-            toast.error('Cash amount must be more than 0 and less than the balance due');
-            return;
-        }
-        setProcessing(true);
-        try {
-            await API.patch(`/receipts/${receipt._id}/pay/cash-till`, { cashAmount });
-            toast.success('Payment recorded');
-            reset();
-            onPaid?.();
-            onClose();
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Payment failed');
-        }
-        setProcessing(false);
-    };
-
-    // ---- Prompt, or Both: Cash + Prompt ----
+    // ---- Prompt (standalone, full remaining balance) ----
     const handleSendStk = async () => {
         if (!mpesaPhone.trim()) {
             toast.error('Enter the M-Pesa phone number');
             return;
-        }
-        let cashAmount = 0;
-        if (paymentMethod === 'both') {
-            cashAmount = parseFloat(cashPortion);
-            if (isNaN(cashAmount) || cashAmount <= 0 || cashAmount >= remaining) {
-                toast.error('Cash amount must be more than 0 and less than the balance due');
-                return;
-            }
         }
         setProcessing(true);
         setMpesaState('pending');
@@ -148,7 +124,7 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
         try {
             const res = await API.post(`/receipts/${receipt._id}/mpesa/initiate`, {
                 phone: mpesaPhone.trim(),
-                cashAmount,
+                cashAmount: 0,
             });
             setMpesaMessage(res.data.message || 'STK push sent. Ask the customer to enter their M-Pesa PIN.');
         } catch (err) {
@@ -204,6 +180,54 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
             toast.error(err.response?.data?.message || 'Payment failed');
         }
         setProcessing(false);
+    };
+
+    // ---- Both: apply Cash + Till together in one call ----
+    const handleComboApply = async () => {
+        if (comboEntered <= 0) { toast.error('Enter at least one amount'); return; }
+        if (comboAfterApply < -0.01) { toast.error('That adds up to more than the balance due'); return; }
+        setComboApplying(true);
+        try {
+            const res = await API.patch(`/receipts/${receipt._id}/pay/combo`, {
+                cashAmount: parseFloat(comboCash) || 0,
+                tillAmount: parseFloat(comboTill) || 0,
+                rewardAmount: 0,
+            });
+            toast.success(res.data.message);
+            const newRemaining = res.data.balanceRemaining ?? 0;
+            setRemaining(newRemaining);
+            setComboCash('');
+            setComboTill('');
+            if (newRemaining <= 0) {
+                reset();
+                onPaid?.();
+                onClose();
+            } else {
+                refreshAfterPayment();
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Payment failed');
+        }
+        setComboApplying(false);
+    };
+
+    // ---- Both: finish whatever's left on M-Pesa prompt ----
+    const handleComboSendPrompt = async () => {
+        if (!comboPromptPhone.trim()) { toast.error("Enter the customer's M-Pesa number"); return; }
+        setComboSendingPrompt(true);
+        setMpesaState('pending');
+        setMpesaMessage('');
+        try {
+            const res = await API.post(`/receipts/${receipt._id}/mpesa/initiate`, {
+                phone: comboPromptPhone.trim(),
+                cashAmount: 0, // remaining already reflects any cash/till already applied
+            });
+            setMpesaMessage(res.data.message || 'STK push sent. Ask the customer to enter their M-Pesa PIN.');
+        } catch (err) {
+            setMpesaState('failed');
+            setMpesaMessage(err.response?.data?.message || 'Failed to send STK push');
+        }
+        setComboSendingPrompt(false);
     };
 
     return (
@@ -324,66 +348,6 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
                             </div>
                         )}
 
-                        {paymentMethod === 'both' && (
-                            <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setBothMethod('prompt')}
-                                        className={`py-2 rounded-lg font-bold text-[11px] border transition-all ${
-                                            bothMethod === 'prompt'
-                                                ? 'bg-orange-500 border-orange-500 text-white'
-                                                : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-500/40'
-                                        }`}
-                                    >
-                                        Cash + Prompt
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setBothMethod('till')}
-                                        className={`py-2 rounded-lg font-bold text-[11px] border transition-all ${
-                                            bothMethod === 'till'
-                                                ? 'bg-orange-500 border-orange-500 text-white'
-                                                : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-orange-500/40'
-                                        }`}
-                                    >
-                                        Cash + Till
-                                    </button>
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">
-                                        Cash Received
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={cashPortion}
-                                        onChange={(e) => setCashPortion(e.target.value)}
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
-                                        placeholder="e.g. 300"
-                                    />
-                                </div>
-                                {bothMethod === 'prompt' && (
-                                    <div>
-                                        <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">
-                                            Customer M-Pesa Number (Prompt Portion)
-                                        </label>
-                                        <input
-                                            type="tel"
-                                            value={mpesaPhone}
-                                            onChange={(e) => setMpesaPhone(e.target.value)}
-                                            placeholder="07XXXXXXXX"
-                                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
-                                        />
-                                    </div>
-                                )}
-                                {/* Auto-calculated live — updates the moment Cash Received changes, never stuck on the full total */}
-                                <p className="text-xs text-gray-400">
-                                    {bothMethod === 'till' ? 'Till amount (auto)' : 'Prompt amount (auto)'}:{' '}
-                                    <span className="font-bold text-gray-700">KES {tillPortion.toLocaleString()}</span>
-                                </p>
-                            </div>
-                        )}
-
                         {paymentMethod === 'till' && (
                             <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
                                 <div>
@@ -435,45 +399,123 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
                             </div>
                         )}
 
-                        <div className="flex gap-3">
-                            <button
-                                onClick={handleClose}
-                                className="flex-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-500 hover:border-gray-300 font-semibold transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={
-                                    paymentMethod === 'cash'
-                                        ? handleCashPay
-                                        : paymentMethod === 'till'
-                                        ? handleTillPay
+                        {/* ---- Both: Cash + Till entered together, applied in one action ---- */}
+                        {paymentMethod === 'both' && (
+                            <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    <div>
+                                        <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1 font-bold">
+                                            <Wallet size={12} /> Cash
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={comboCash}
+                                            onChange={(e) => setComboCash(e.target.value)}
+                                            placeholder="0"
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1 font-bold">
+                                            <Landmark size={12} /> Till
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={comboTill}
+                                            onChange={(e) => setComboTill(e.target.value)}
+                                            placeholder="0"
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Live — recalculates the instant either field changes, never stuck on the full total */}
+                                <div className={`text-sm font-bold mb-4 ${comboAfterApply < 0 ? 'text-red-500' : comboAfterApply === 0 ? 'text-emerald-600' : 'text-gray-500'}`}>
+                                    {comboAfterApply < 0
+                                        ? `Over by KES ${Math.abs(comboAfterApply).toLocaleString()}`
+                                        : `Remaining after this: KES ${comboAfterApply.toLocaleString()}`}
+                                </div>
+
+                                <div className="flex gap-3 mb-4">
+                                    <button
+                                        onClick={handleClose}
+                                        className="flex-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-500 hover:border-gray-300 font-semibold transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleComboApply}
+                                        disabled={comboApplying || comboEntered <= 0 || comboAfterApply < -0.01}
+                                        className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold transition-colors disabled:opacity-50 shadow-sm"
+                                    >
+                                        {comboApplying ? 'Applying…' : 'Apply'}
+                                    </button>
+                                </div>
+
+                                {remaining > 0 && (
+                                    <div className="border-t border-gray-100 pt-5">
+                                        <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1 font-bold">
+                                            <Smartphone size={12} /> Finish remainder on M-Pesa Prompt
+                                        </label>
+                                        <div className="flex gap-2 mt-2">
+                                            <input
+                                                type="tel"
+                                                value={comboPromptPhone}
+                                                onChange={(e) => setComboPromptPhone(e.target.value)}
+                                                placeholder="07XXXXXXXX"
+                                                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
+                                            />
+                                            <button
+                                                onClick={handleComboSendPrompt}
+                                                disabled={comboSendingPrompt}
+                                                className="px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm font-bold transition-colors disabled:opacity-50"
+                                            >
+                                                {comboSendingPrompt ? '…' : `Send KES ${remaining.toLocaleString()}`}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Footer for the other 4 methods — Both has its own Apply/Cancel above */}
+                        {paymentMethod !== 'both' && (
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={handleClose}
+                                    className="flex-1 py-3 rounded-xl border border-gray-200 bg-white text-gray-500 hover:border-gray-300 font-semibold transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={
+                                        paymentMethod === 'cash'
+                                            ? handleCashPay
+                                            : paymentMethod === 'till'
+                                            ? handleTillPay
+                                            : paymentMethod === 'reward'
+                                            ? handleRewardPay
+                                            : handleSendStk
+                                    }
+                                    disabled={
+                                        !paymentMethod ||
+                                        processing ||
+                                        (paymentMethod === 'cash' && cashChange !== null && cashChange < 0)
+                                    }
+                                    className={`flex-1 py-3 rounded-xl text-white font-bold transition-colors disabled:opacity-50 shadow-sm ${
+                                        paymentMethod === 'reward' ? 'bg-purple-500 hover:bg-purple-600' : 'bg-orange-500 hover:bg-orange-600'
+                                    }`}
+                                >
+                                    {processing
+                                        ? 'Processing…'
                                         : paymentMethod === 'reward'
-                                        ? handleRewardPay
-                                        : paymentMethod === 'both' && bothMethod === 'till'
-                                        ? handleCashTillPay
-                                        : handleSendStk
-                                }
-                                disabled={
-                                    !paymentMethod ||
-                                    processing ||
-                                    (paymentMethod === 'cash' && cashChange !== null && cashChange < 0)
-                                }
-                                className={`flex-1 py-3 rounded-xl text-white font-bold transition-colors disabled:opacity-50 shadow-sm ${
-                                    paymentMethod === 'reward' ? 'bg-purple-500 hover:bg-purple-600' : 'bg-orange-500 hover:bg-orange-600'
-                                }`}
-                            >
-                                {processing
-                                    ? 'Processing…'
-                                    : paymentMethod === 'reward'
-                                    ? 'Apply Points'
-                                    : paymentMethod === 'cash' ||
-                                      paymentMethod === 'till' ||
-                                      (paymentMethod === 'both' && bothMethod === 'till')
-                                    ? 'Confirm Payment'
-                                    : 'Send Prompt'}
-                            </button>
-                        </div>
+                                        ? 'Apply Points'
+                                        : paymentMethod === 'cash' || paymentMethod === 'till'
+                                        ? 'Confirm Payment'
+                                        : 'Send Prompt'}
+                                </button>
+                            </div>
+                        )}
                     </>
                 )}
 
@@ -493,4 +535,4 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
             </div>
         </div>
     );
-                }
+            }
