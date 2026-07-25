@@ -9,10 +9,7 @@ export default function ShiftBar({ onShiftChange }) {
     const [showOpen, setShowOpen] = useState(false);
     const [showClose, setShowClose] = useState(false);
     const [openingFloat, setOpeningFloat] = useState('');
-    const [closingCashCount, setClosingCashCount] = useState('');
-    const [tipsDeclared, setTipsDeclared] = useState('');
     const [notes, setNotes] = useState('');
-    const [summary, setSummary] = useState(null);
     const [busy, setBusy] = useState(false);
 
     const fetchShift = useCallback(async () => {
@@ -42,28 +39,20 @@ export default function ShiftBar({ onShiftChange }) {
         setBusy(false);
     };
 
-    const openCloseModal = async () => {
-        try {
-            const res = await API.get(`/shifts/${shift._id}/summary`);
-            setSummary(res.data);
-            setShowClose(true);
-        } catch (err) {
-            toast.error('Could not load shift summary');
-        }
+    const openCloseModal = () => {
+        setShowClose(true);
     };
 
     const handleClose = async () => {
         setBusy(true);
         try {
             await API.post(`/shifts/${shift._id}/close`, {
-                closingCashCount: parseFloat(closingCashCount) || 0,
-                tipsDeclared: parseFloat(tipsDeclared) || 0,
+                closingCashCount: 0,
+                tipsDeclared: 0,
                 notes,
             });
             toast.success('Shift closed');
             setShowClose(false);
-            setClosingCashCount('');
-            setTipsDeclared('');
             setNotes('');
             fetchShift();
         } catch (err) {
@@ -86,7 +75,7 @@ export default function ShiftBar({ onShiftChange }) {
                             Shift open · started {new Date(shift.createdAt).toLocaleTimeString()}
                         </span>
                     ) : (
-                        <span className="text-amber-700">No shift open — open one to process payments</span>
+                        <span className="text-amber-700">No shift open</span>
                     )}
                 </div>
                 {shift ? (
@@ -122,21 +111,10 @@ export default function ShiftBar({ onShiftChange }) {
                 </div>
             )}
 
-            {showClose && summary && (
+            {showClose && (
                 <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs flex items-center justify-center z-50 px-4">
-                    <div className="bg-white border border-gray-200 rounded-2xl p-8 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+                    <div className="bg-white border border-gray-200 rounded-2xl p-8 w-full max-w-sm shadow-xl">
                         <h3 className="text-xl font-black text-gray-800 mb-4">Close Shift</h3>
-                        <div className="grid grid-cols-2 gap-3 text-sm mb-6">
-                            <div className="bg-gray-50 rounded-lg p-3"><p className="text-gray-400 text-xs">Cash</p><p className="font-bold">KES {summary.cashSales.toLocaleString()}</p></div>
-                            <div className="bg-gray-50 rounded-lg p-3"><p className="text-gray-400 text-xs">Till</p><p className="font-bold">KES {summary.tillSales.toLocaleString()}</p></div>
-                            <div className="bg-gray-50 rounded-lg p-3"><p className="text-gray-400 text-xs">Prompt</p><p className="font-bold">KES {summary.promptSales.toLocaleString()}</p></div>
-                            <div className="bg-gray-50 rounded-lg p-3"><p className="text-gray-400 text-xs">Reward</p><p className="font-bold">KES {summary.rewardSales.toLocaleString()}</p></div>
-                            <div className="bg-gray-50 rounded-lg p-3 col-span-2"><p className="text-gray-400 text-xs">Expected cash in drawer</p><p className="font-bold text-orange-600">KES {summary.expectedCash.toLocaleString()}</p></div>
-                        </div>
-                        <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">Counted Cash</label>
-                        <input type="number" value={closingCashCount} onChange={(e) => setClosingCashCount(e.target.value)} placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 mb-3" />
-                        <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">Tips Declared</label>
-                        <input type="number" value={tipsDeclared} onChange={(e) => setTipsDeclared(e.target.value)} placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 mb-3" />
                         <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block font-bold">Notes</label>
                         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 mb-6" rows={2} />
                         <div className="flex gap-3">
@@ -150,4 +128,4 @@ export default function ShiftBar({ onShiftChange }) {
             )}
         </>
     );
-                }
+}
