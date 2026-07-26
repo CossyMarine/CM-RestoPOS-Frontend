@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useAuth } from "./hooks/useAuth";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { routeForUser } from "./utils/routeForUser";
 import LoginPage from "./pages/LoginPage";
 import Admin from "./pages/Admin";
@@ -12,6 +12,7 @@ import CustomerPage from "./pages/CustomerPage";
 import OrdersPage from "./pages/OrdersPage";
 import WalletPage from "./pages/WalletPage";
 import ProfilePage from "./pages/ProfilePage";
+import ProfileDetailsPage from "./pages/ProfileDetailsPage";
 
 function LoadingScreen() {
   return (
@@ -29,7 +30,7 @@ function StaffRoute({ user, loading, allow, children }) {
   return children;
 }
 
-export default function App() {
+function AppRoutes() {
   const { user, loading, refetch } = useAuth();
 
   return (
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/details" element={<ProfileDetailsPage />} />
 
         <Route
           path="/login"
@@ -96,5 +98,13 @@ export default function App() {
 
       <ToastContainer position="top-right" theme="light" autoClose={3000} />
     </BrowserRouter>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }
