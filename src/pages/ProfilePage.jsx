@@ -110,6 +110,8 @@ export default function ProfilePage() {
   // ---------- Logged-in view ----------
   const joined = formatJoinDate(user.createdAt);
   const isWaiter = user.role?.toLowerCase() === "waiter" || user.isStaff;
+  const missingEmail = !user.email;
+  const missingPhone = !user.phone;
 
   const loyaltyPoints = wallet?.points ?? 0;
   const targetPoints = wallet?.targetPoints || 500;
@@ -193,6 +195,27 @@ export default function ProfilePage() {
 
           {joined && <p className="text-xs text-stone-400 mt-2.5">Member since {joined}</p>}
         </div>
+
+        {/* MISSING CONTACT PROMPT — shown until the user has both email and phone on file */}
+        {(missingEmail || missingPhone) && (
+          <button
+            onClick={() => navigate("/profile/details")}
+            className="w-full bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center gap-3 text-left hover:bg-orange-100/60 transition-colors"
+          >
+            <span className="w-9 h-9 rounded-lg bg-orange-500 flex items-center justify-center shrink-0 text-white">
+              {missingEmail ? <Mail size={16} /> : <Phone size={16} />}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-orange-900">
+                Add your {missingEmail && missingPhone ? "email or phone" : missingEmail ? "email" : "phone number"}
+              </p>
+              <p className="text-xs text-orange-700/80">
+                Keep your account secure and reachable — takes a second.
+              </p>
+            </div>
+            <ChevronRight size={16} className="text-orange-400 shrink-0" />
+          </button>
+        )}
 
         {/* REWARDS CARD */}
         {!isWaiter ? (
