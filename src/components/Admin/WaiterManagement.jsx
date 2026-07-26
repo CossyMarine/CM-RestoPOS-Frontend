@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Search, Eye, Ban, CheckCircle2, Trash2, ListFilter, X } from 'lucide-react';
+import { RefreshCw, Search, Eye, Ban, CheckCircle2, Trash2, ListFilter, X, ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import ConfirmModal from './ConfirmModal';
@@ -28,8 +28,9 @@ export default function WaiterManagement() {
   const [status, setStatus] = useState('all');
   const [sort, setSort] = useState('name');
 
-  const [detail, setDetail] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  // Tapping a waiter now swaps this whole panel to a detail "page" —
+  // no longer a modal. null = show the list.
+  const [selectedWaiter, setSelectedWaiter] = useState(null);
 
   const [dropTarget, setDropTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -60,16 +61,14 @@ export default function WaiterManagement() {
   }, [search]);
 
   const openDetail = async (w) => {
-    setDetail({ fullName: w.fullName });
-    setDetailLoading(true);
+    setSelectedWaiter({ fullName: w.fullName, loading: true });
     try {
       const res = await API.get(`/waiters/management/${w.id}`);
-      setDetail(res.data);
+      setSelectedWaiter({ ...res.data, loading: false });
     } catch {
       toast.error('Could not load waiter detail');
-      setDetail(null);
+      setSelectedWaiter(null);
     }
-    setDetailLoading(false);
   };
 
   const confirmDrop = async () => {
@@ -151,6 +150,85 @@ export default function WaiterManagement() {
     setSelectorSaving(false);
   };
 
+  // ---- Detail "page" (swaps in place of the list) ----
+  if (selectedWaiter) {
+    return (
+      <div className="space-y-6 bg-gray-50 text-gray-800">
+        <button
+          onClick={() => setSelectedWaiter(null)}
+          className="flex items-center gap-1.5 text-sm font-bold text-orange-500 hover:text-orange-600"
+        >
+          <ArrowLeft size={15} /> Back to Waiter Management
+        </button>
+
+        {selectedWaiter.loading ? (
+          <p className="text-gray-400 text-sm">Loading…</p>
+        ) : (
+          <>
+            <div>
+              <h2 className="text-2xl font-black text-gray-800">{selectedWaiter.fullName}</h2>
+              <p className="text-sm text-gray-500">
+                Waiter since {new Date(selectedWaiter.waiterSince).toLocaleDateString()} ·{' '}
+                {selectedWaiter.waiterSource === 'promoted' ? 'Promoted from another role' : 'Added directly as waiter'}
+                {' · '}Contact: {selectedWaiter.email || selectedWaiter.phone || '—'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                <p className="text-xs text-gray-400 font-bold uppercase">Total Sales</p>
+                <p className="text-xl font-black text-gray-800">{fmt(selectedWaiter.totalSales)}</p>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                <p className="text-xs text-gray-400 font-bold uppercase">Total Orders</p>
+                <p className="text-xl font-black text-gray-800">{selectedWaiter.totalOrders}</p>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                <p className="text-xs text-gray-400 font-bold uppercase">Total Voids</p>
+                <p className="text-xl font-black text-red-500">{selectedWaiter.totalVoids}</p>
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+              <h4 className="p-4 text-xs font-bold uppercase text-gray-400 border-b border-gray-100">Shift History</h4>
+              <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+                {(selectedWaiter.shiftHistory || []).length === 0 ? (
+                  <p className="p-4 text-gray-400 text-sm">No shifts recorded yet.</p>
+                ) : (
+                  selectedWaiter.shiftHistory.map((s) => (
+                    <div key={s._id} className="p-3 flex items-center justify-between text-sm">
+                      <span className="text-gray-600">{new Date(s.createdAt).toLocaleString()}</span>
+                      <span className="text-gray-400 text-xs">Float: {fmt(s.openingFloat)}</span>
+                      <span className={`font-bold text-xs ${s.status === 'open' ? 'text-emerald-600' : 'text-gray-400'}`}>
+                        {s.status === 'open' ? 'Open' : `Closed ${new Date(s.closedAt).toLocaleTimeString()}`}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+              <h4 className="p-4 text-xs font-bold uppercase text-gray-400 border-b border-gray-100">Recent Bills</h4>
+              <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+                {(selectedWaiter.recentBills || []).length === 0 ? (
+                  <p className="p-4 text-gray-400 text-sm">No bills yet.</p>
+                ) : (
+                  selectedWaiter.recentBills.map((b) => (
+                    <div key={b._id} className="p-3 flex justify-between text-sm">
+                      <span>{b.billId} · Table {b.tableNumber}</span>
+                      <span className="font-semibold">{fmt(b.subtotal)}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 bg-gray-50 text-gray-800">
       <div className="flex flex-wrap justify-between items-center gap-4">
@@ -226,7 +304,11 @@ export default function WaiterManagement() {
                 <tr><td colSpan={11} className="p-8 text-center text-gray-400 font-medium">No waiters found</td></tr>
               ) : (
                 waiters.map((w) => (
-                  <tr key={w.id} className="hover:bg-gray-50/70 transition-colors">
+                  <tr
+                    key={w.id}
+                    onClick={() => openDetail(w)}
+                    className="hover:bg-gray-50/70 transition-colors cursor-pointer"
+                  >
                     <td className="p-3 font-bold text-gray-800">{w.fullName}</td>
                     <td className="p-3 text-xs text-gray-400">{new Date(w.waiterSince).toLocaleDateString()}</td>
                     <td className="p-3">
@@ -253,7 +335,7 @@ export default function WaiterManagement() {
                         <span className="inline-flex items-center gap-1 text-red-500 text-xs font-bold"><Ban size={13} /> Dropped</span>
                       )}
                     </td>
-                    <td className="p-3 text-right">
+                    <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-3">
                         <button onClick={() => openDetail(w)} className="text-gray-400 hover:text-orange-500" title="View"><Eye size={15} /></button>
                         <button
@@ -281,38 +363,6 @@ export default function WaiterManagement() {
           </table>
         </div>
       </div>
-
-      {/* Waiter detail modal */}
-      {detail && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-black text-gray-800">{detail.fullName}</h3>
-              <button onClick={() => setDetail(null)}><X size={18} className="text-gray-400" /></button>
-            </div>
-            <div className="p-5 space-y-3">
-              {detailLoading ? (
-                <p className="text-gray-400 text-sm">Loading…</p>
-              ) : (
-                <>
-                  <p className="text-sm text-gray-500">Waiter since: {new Date(detail.waiterSince).toLocaleDateString()}</p>
-                  <p className="text-sm text-gray-500">Source: {detail.waiterSource === 'promoted' ? 'Promoted from another role' : 'Added directly as waiter'}</p>
-                  <p className="text-sm text-gray-500">Contact: {detail.email || detail.phone || '—'}</p>
-                  <h4 className="text-xs font-bold uppercase text-gray-400 mt-4">Recent Bills</h4>
-                  <div className="divide-y divide-gray-100">
-                    {(detail.recentBills || []).map((b) => (
-                      <div key={b._id} className="py-2 flex justify-between text-sm">
-                        <span>{b.billId} · Table {b.tableNumber}</span>
-                        <span className="font-semibold">{fmt(b.subtotal)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Per-waiter selector settings modal */}
       {selectorTarget && (
