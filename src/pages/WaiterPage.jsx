@@ -18,6 +18,7 @@ import BillHistoryPanel from "../components/Waiter/BillHistoryPanel";
 import AddItemsModal from "../components/Waiter/AddItemsModal";
 import ViewBillModal from "../components/Waiter/ViewBillModal";
 import TakeOrderModal from "../components/Waiter/TakeOrderModal";
+import WaiterSettingsPanel from "../components/Waiter/WaiterSettingsPanel";
 import PrintReceipt from "../components/PrintReceipt";
 
 const SOCKET_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/api\/?$/, "");
@@ -64,6 +65,16 @@ export default function WaiterDashboard() {
 
   const [takeOrderTarget, setTakeOrderTarget] = useState(null);
   const [takeOrderBusy, setTakeOrderBusy] = useState(false);
+
+  // ---- Settings: menu grid size (per-device display preference) ----
+  const [gridSize, setGridSize] = useState(() => localStorage.getItem("waiterGridSize") || "medium");
+  const handleGridSizeChange = (size) => {
+    setGridSize(size);
+    localStorage.setItem("waiterGridSize", size);
+  };
+
+  // ---- Settings: whether the currently selected waiter's shift is open ----
+  const [waiterShiftOpen, setWaiterShiftOpen] = useState(true); // assume open until checked
 
   // ---- Initial data ----
   useEffect(() => {
@@ -132,9 +143,24 @@ export default function WaiterDashboard() {
       }));
     });
 
+    // Keep the shift indicator live — if this waiter's shift gets closed
+    // (e.g. from Settings on this same device) block ordering immediately.
+    socket.on("shift:closed", (summary) => {
+      const w = waiters.find((x) => x.fullName === waiterName);
+      if (w && String(summary.openedBy?._id || summary.openedBy) === String(w.id)) {
+        setWaiterShiftOpen(false);
+      }
+    });
+    socket.on("shift:opened", (shift) => {
+      const w = waiters.find((x) => x.fullName === waiterName);
+      if (w && String(shift.openedBy) === String(w.id)) {
+        setWaiterShiftOpen(true);
+      }
+    });
+
     return () => socket.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [historyPage, historySearch]);
+  }, [historyPage, historySearch, waiters, waiterName]);
 
   // ---- Bill history ----
   // Shows ALL bills (every waiter) by default when no waiter is selected;
@@ -171,6 +197,18 @@ export default function WaiterDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [waiterName]);
 
+  // ---- Check the selected waiter's shift status whenever they change ----
+  useEffect(() => {
+    const w = waiters.find((x) => x.fullName === waiterName);
+    if (!w) {
+      setWaiterShiftOpen(true);
+      return;
+    }
+    API.get(`/shifts/waiter/${w.id}/status`)
+      .then((res) => setWaiterShiftOpen(!!res.data))
+      .catch(() => setWaiterShiftOpen(true));
+  }, [waiterName, waiters]);
+
   const categories = useMemo(() => {
     const set = new Set(menu.map((m) => m.category));
     return ["all", ...Array.from(set)];
@@ -180,6 +218,10 @@ export default function WaiterDashboard() {
   const addToCart = (item) => {
     if (!waiterName || (!assumeTableWaiter && !tableNumber)) {
       toast.warning("Select the assigned server and table number first");
+      return;
+    }
+    if (!waiterShiftOpen) {
+      toast.error(`${waiterName}'s shift is closed — open it in Settings first`);
       return;
     }
     setCart((prev) => {
@@ -222,6 +264,10 @@ export default function WaiterDashboard() {
   const handlePrintSubmit = () => {
     if (!waiterName || (!assumeTableWaiter && !tableNumber) || cart.length === 0) {
       toast.error("Complete server, table, and item selections before printing");
+      return;
+    }
+    if (!waiterShiftOpen) {
+      toast.error(`${waiterName}'s shift is closed — open it in Settings first`);
       return;
     }
     setShowPrintModal(true);
@@ -378,6 +424,11 @@ export default function WaiterDashboard() {
               tableNumber={tableNumber}
               onTableChange={setTableNumber}
             />
+            {!waiterShiftOpen && waiterName && (
+              <div className="bg-red-50 border border-red-200 text-red-600 text-sm font-bold px-4 py-2.5 rounded-lg">
+                {waiterName}'s shift is closed — open it in Settings to take orders.
+              </div>
+            )}
             <MenuSearchBar value={search} onChange={setSearch} />
             <MenuGrid
               menu={menu}
@@ -390,6 +441,7 @@ export default function WaiterDashboard() {
               onAdd={addToCart}
               onTogglePin={togglePin}
               onReorderPinned={reorderPinned}
+              gridSize={gridSize}
             />
           </div>
 
@@ -426,6 +478,14 @@ export default function WaiterDashboard() {
           onAddItems={openAddItems}
           onRequestVoid={setVoidTarget}
           onView={openViewBill}
+        />
+      )}
+
+      {activeTab === "settings" && (
+        <WaiterSettingsPanel
+          waiters={waiters}
+          gridSize={gridSize}
+          onGridSizeChange={handleGridSizeChange}
         />
       )}
 
@@ -470,4 +530,4 @@ export default function WaiterDashboard() {
       />
     </div>
   );
-                               }
+    }
