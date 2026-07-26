@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ChefHat, LayoutDashboard, History, LogOut, ExternalLink, Bell, Utensils } from "lucide-react";
+import { ChefHat, LayoutDashboard, History, LogOut, ExternalLink, Bell, Utensils, Settings } from "lucide-react";
 
 export default function WaiterHeader({
   activeTab,
@@ -68,6 +68,17 @@ export default function WaiterHeader({
             }`}
           >
             <History size={16} /> Bill Records ({billCount})
+          </button>
+
+          <button
+            onClick={() => onTabChange("settings")}
+            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors ${
+              activeTab === "settings"
+                ? "bg-stone-900 text-white"
+                : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+            }`}
+          >
+            <Settings size={16} /> Settings
           </button>
 
           <Link
