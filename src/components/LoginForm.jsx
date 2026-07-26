@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { Link } from "react-router-dom";
 import API from "../api/axios";
 
 export default function LoginForm({ onSuccess, onSwitchToRegister }) {
@@ -40,7 +41,15 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }) {
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-stone-700 mb-1.5">Password</label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-sm font-semibold text-stone-700">Password</label>
+          <Link
+            to="/forgot-password"
+            className="text-xs text-orange-500 font-semibold hover:text-orange-600"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <div className="relative">
           <input
             type={showPass ? "text" : "password"}
