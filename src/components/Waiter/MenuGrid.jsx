@@ -1,6 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import MenuCard from "./MenuCard";
 
+const GRID_COLS = {
+  small: "grid-cols-3 sm:grid-cols-4 md:grid-cols-6",
+  medium: "grid-cols-2 sm:grid-cols-3 md:grid-cols-4", // current/default look, unchanged
+  large: "grid-cols-2 sm:grid-cols-2 md:grid-cols-3",
+  xlarge: "grid-cols-1 sm:grid-cols-2 md:grid-cols-2",
+};
+
 export default function MenuGrid({
   menu,
   loading,
@@ -12,7 +19,10 @@ export default function MenuGrid({
   onAdd,
   onTogglePin,
   onReorderPinned,
+  gridSize = "medium",
 }) {
+  const cols = GRID_COLS[gridSize] || GRID_COLS.medium;
+
   const pinnedSource = useMemo(
     () => menu.filter((m) => m.pinned).sort((a, b) => (a.pinOrder ?? 0) - (b.pinOrder ?? 0)),
     [menu]
@@ -111,7 +121,7 @@ export default function MenuGrid({
           <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400 mb-2">
             Pinned — hold and drag to reorder
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className={`grid ${cols} gap-3`}>
             {pinnedOrder.map((item) => (
               <MenuCard
                 key={item._id}
@@ -128,7 +138,7 @@ export default function MenuGrid({
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[50vh] overflow-y-auto pr-1">
+      <div className={`grid ${cols} gap-3 max-h-[50vh] overflow-y-auto pr-1`}>
         {loading && <p className="text-stone-400 text-sm col-span-full">Loading menu…</p>}
         {!loading && filteredMenu.length === 0 && pinnedOrder.length === 0 && (
           <p className="text-stone-400 text-sm col-span-full">No menu items match your search.</p>
@@ -140,4 +150,4 @@ export default function MenuGrid({
       </div>
     </div>
   );
-                                         }
+      }
