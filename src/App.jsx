@@ -13,6 +13,10 @@ import OrdersPage from "./pages/OrdersPage";
 import WalletPage from "./pages/WalletPage";
 import ProfilePage from "./pages/ProfilePage";
 import ProfileDetailsPage from "./pages/ProfileDetailsPage";
+import ForgotPassword from "./pages/ForgotPassword";
+import VerifyResetCode from "./pages/VerifyResetCode";
+import ResetPassword from "./pages/ResetPassword";
+
 
 function LoadingScreen() {
   return (
@@ -44,6 +48,9 @@ function AppRoutes() {
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/details" element={<ProfileDetailsPage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-reset-code" element={<VerifyResetCode />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route
           path="/login"
