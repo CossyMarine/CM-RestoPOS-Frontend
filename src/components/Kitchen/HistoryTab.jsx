@@ -36,6 +36,7 @@ export default function HistoryTab({
                     >
                         <option value="">All</option>
                         <option value="pending">Pending</option>
+                        <option value="serving">Serving</option>
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
                     </select>
