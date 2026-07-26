@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { Clock, Unlock, LockKeyhole, ChevronLeft } from 'lucide-react';
+import { Clock, Unlock, LockKeyhole, ChevronLeft, Printer } from 'lucide-react';
 import API from '../../api/axios';
 
 const PERMISSION_LABELS = {
@@ -24,6 +24,37 @@ export default function AccountantManagement() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [savingPerm, setSavingPerm] = useState(false);
+
+    // ---- Allow printing during payment (global setting) ----
+    const [allowPrinting, setAllowPrinting] = useState(false);
+    const [printSettingLoading, setPrintSettingLoading] = useState(true);
+    const [printSettingSaving, setPrintSettingSaving] = useState(false);
+
+    const fetchPrintSetting = useCallback(async () => {
+        setPrintSettingLoading(true);
+        try {
+            const res = await API.get('/settings');
+            setAllowPrinting(!!res.data.allowPrintingDuringPayment);
+        } catch (err) {
+            console.error('Failed to fetch print setting', err);
+        }
+        setPrintSettingLoading(false);
+    }, []);
+
+    useEffect(() => { fetchPrintSetting(); }, [fetchPrintSetting]);
+
+    const togglePrintSetting = async () => {
+        const next = !allowPrinting;
+        setPrintSettingSaving(true);
+        try {
+            await API.patch('/settings', { allowPrintingDuringPayment: next });
+            setAllowPrinting(next);
+            toast.success(`Printing during payment ${next ? 'enabled' : 'disabled'}`);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not update setting');
+        }
+        setPrintSettingSaving(false);
+    };
 
     const fetchList = useCallback(async () => {
         setLoading(true);
@@ -160,9 +191,27 @@ export default function AccountantManagement() {
     // ---- List view ----
     return (
         <div className="space-y-6 bg-gray-50 text-gray-800">
-            <div>
-                <h2 className="text-2xl font-black text-gray-800">Accountants</h2>
-                <p className="text-sm text-gray-500">Manage access and review processed payments</p>
+            <div className="flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <h2 className="text-2xl font-black text-gray-800">Accountants</h2>
+                    <p className="text-sm text-gray-500">Manage access and review processed payments</p>
+                </div>
+                <button
+                    onClick={togglePrintSetting}
+                    disabled={printSettingLoading || printSettingSaving}
+                    className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold border transition-colors disabled:opacity-50 ${
+                        allowPrinting
+                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-400'
+                    }`}
+                >
+                    <Printer size={16} />
+                    {printSettingSaving
+                        ? 'Saving…'
+                        : allowPrinting
+                        ? 'Printing on Payment: ON'
+                        : 'Printing on Payment: OFF'}
+                </button>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
@@ -200,4 +249,4 @@ export default function AccountantManagement() {
             </div>
         </div>
     );
-                      }
+                }
