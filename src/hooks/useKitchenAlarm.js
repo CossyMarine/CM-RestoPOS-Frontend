@@ -1,17 +1,10 @@
 import { useRef, useCallback, useEffect } from 'react';
 
-// Handles the kitchen alarm sound. Whenever a custom sound is selected in
-// settings, it's preloaded into a browser Audio object the moment settings
-// load — not when an order arrives — so playback is instant. Cloudinary also
-// serves the file off a CDN with long-lived cache headers, so even the very
-// first preload is fast and every later load is effectively free.
 export function useKitchenAlarm(settings) {
     const audioCtxRef = useRef(null);
     const customAudioRef = useRef(null);
-    const alarmIntervalRef = useRef(null);
     const unlockedRef = useRef(false);
 
-    // Preload/refresh the custom sound whenever the selected sound changes.
     useEffect(() => {
         if (!settings.notificationSoundUrl) {
             customAudioRef.current = null;
@@ -20,13 +13,10 @@ export function useKitchenAlarm(settings) {
         const audio = new Audio();
         audio.preload = 'auto';
         audio.src = settings.notificationSoundUrl;
-        audio.load(); // starts buffering immediately, well before any order arrives
+        audio.load();
         customAudioRef.current = audio;
     }, [settings.notificationSoundUrl]);
 
-    // Browsers block audio until a user gesture happens. Unlock both the
-    // custom <audio> element and the Web Audio context on the first tap
-    // anywhere on the kitchen display.
     useEffect(() => {
         const unlock = () => {
             if (unlockedRef.current) return;
@@ -87,32 +77,12 @@ export function useKitchenAlarm(settings) {
         }
     }, []);
 
-    const playAlarm = useCallback(() => {
+    // Rings exactly once per call — call this once per new order, not in a loop
+    const playAlarmOnce = useCallback(() => {
         if (!settings.soundEnabled) return;
         const played = settings.notificationSoundUrl ? playCustom() : false;
         if (!played) playBeep();
     }, [settings.soundEnabled, settings.notificationSoundUrl, playCustom, playBeep]);
 
-    const startAlarmLoop = useCallback(() => {
-        if (alarmIntervalRef.current) return;
-        playAlarm();
-        const audio = customAudioRef.current;
-        const intervalMs = settings.notificationSoundUrl && audio?.duration
-            ? Math.max(1500, audio.duration * 1000 + 200)
-            : 1500;
-        alarmIntervalRef.current = setInterval(playAlarm, intervalMs);
-    }, [playAlarm, settings.notificationSoundUrl]);
-
-    const stopAlarmLoop = useCallback(() => {
-        if (alarmIntervalRef.current) {
-            clearInterval(alarmIntervalRef.current);
-            alarmIntervalRef.current = null;
-        }
-        if (customAudioRef.current) {
-            customAudioRef.current.pause();
-            customAudioRef.current.currentTime = 0;
-        }
-    }, []);
-
-    return { startAlarmLoop, stopAlarmLoop };
-      }
+    return { playAlarmOnce };
+}
