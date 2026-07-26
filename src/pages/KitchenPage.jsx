@@ -59,7 +59,7 @@ export default function KitchenPage() {
     });
     const [detailOrder, setDetailOrder] = useState(null);
 
-    const { startAlarmLoop, stopAlarmLoop } = useKitchenAlarm(settings);
+    const { playAlarmOnce } = useKitchenAlarm(settings);
 
     // ---- Live clock tick ----
     useEffect(() => {
@@ -162,7 +162,7 @@ export default function KitchenPage() {
                 return [...prev, newOrder];
             });
             setNewOrderIds((prev) => new Set(prev).add(newOrder._id));
-            startAlarmLoop();
+            playAlarmOnce();
         });
 
         socket.on('order:updated', (updatedOrder) => {
@@ -185,13 +185,8 @@ export default function KitchenPage() {
 
         return () => {
             socket.disconnect();
-            stopAlarmLoop();
         };
-    }, [loadInitialOrders, loadSettings, loadStats, loadMenuImages, startAlarmLoop, stopAlarmLoop]);
-
-    useEffect(() => {
-        if (newOrderIds.size === 0) stopAlarmLoop();
-    }, [newOrderIds, stopAlarmLoop]);
+    }, [loadInitialOrders, loadSettings, loadStats, loadMenuImages, playAlarmOnce]);
 
     useEffect(() => {
         if (activeTab === 'history') loadHistory(1);
@@ -359,4 +354,4 @@ export default function KitchenPage() {
             <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} resolveImg={resolveImg} />
         </div>
     );
-                }
+            }
