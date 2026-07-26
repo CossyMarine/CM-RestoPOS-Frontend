@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Wallet, Smartphone, Layers, Landmark, Gift, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../../api/axios';
+import PrintReceipt from '../../PrintReceipt';
 
 export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const [paymentMethod, setPaymentMethod] = useState(''); // 'cash' | 'prompt' | 'both' | 'till' | 'reward'
@@ -16,12 +17,23 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const [mpesaMessage, setMpesaMessage] = useState('');
     const [remaining, setRemaining] = useState(0);
 
+    // ---- Print-on-payment (global admin setting) ----
+    const [allowPrinting, setAllowPrinting] = useState(false);
+    const [printTarget, setPrintTarget] = useState(null);
+
     // ---- "Both" — cash + till entered simultaneously, applied together ----
     const [comboCash, setComboCash] = useState('');
     const [comboTill, setComboTill] = useState('');
     const [comboPromptPhone, setComboPromptPhone] = useState('');
     const [comboApplying, setComboApplying] = useState(false);
     const [comboSendingPrompt, setComboSendingPrompt] = useState(false);
+
+    // Load the global "allow printing during payment" setting once.
+    useEffect(() => {
+        API.get('/settings')
+            .then((res) => setAllowPrinting(!!res.data.allowPrintingDuringPayment))
+            .catch(() => setAllowPrinting(false));
+    }, []);
 
     // Declared BEFORE the effect below uses it — avoids the TDZ crash.
     const reset = () => {
@@ -41,6 +53,18 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const handleClose = () => { reset(); onClose(); };
 
     const refreshAfterPayment = () => onPaid?.();
+
+    // Prints the receipt with its payment breakdown once a bill is fully
+    // settled — gated by the admin's "allow printing during payment" toggle.
+    const printPaidReceipt = (paidReceipt) => {
+        if (!allowPrinting || !paidReceipt) return;
+        setPrintTarget(paidReceipt);
+        setTimeout(() => {
+            window.print();
+            API.patch(`/receipts/${paidReceipt._id}/print`).catch(() => {});
+            setPrintTarget(null);
+        }, 150);
+    };
 
     // Re-sync balance + clear stale inputs whenever a new receipt is selected for payment.
     useEffect(() => {
@@ -74,8 +98,9 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
         }
         setProcessing(true);
         try {
-            await API.patch(`/receipts/${receipt._id}/pay`, { amountPaid: received });
+            const res = await API.patch(`/receipts/${receipt._id}/pay`, { amountPaid: received });
             toast.success('Payment recorded');
+            printPaidReceipt(res.data.receipt);
             reset();
             onPaid?.();
             onClose();
@@ -94,10 +119,13 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
         }
         setProcessing(true);
         try {
-            await API.post('/wallet/pay/manual', { receiptId: receipt._id, amount: amt });
+            const res = await API.post('/wallet/pay/manual', { receiptId: receipt._id, amount: amt });
             toast.success('Payment recorded');
             const newRemaining = Number((remaining - amt).toFixed(2));
             if (newRemaining <= 0) {
+                // NOTE: confirm this endpoint returns `receipt` in its response body.
+                // If it doesn't, swap for a GET /receipts/:id fetch before printing.
+                printPaidReceipt(res.data.receipt);
                 reset();
                 onPaid?.();
                 onClose();
@@ -167,6 +195,7 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
             toast.success(res.data.message);
             const newRemaining = res.data.balanceRemaining ?? Number((remaining - amt).toFixed(2));
             if (newRemaining <= 0) {
+                printPaidReceipt(res.data.receipt);
                 reset();
                 onPaid?.();
                 onClose();
@@ -200,6 +229,7 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
             setComboCash('');
             setComboTill('');
             if (newRemaining <= 0) {
+                printPaidReceipt(res.data.receipt);
                 reset();
                 onPaid?.();
                 onClose();
@@ -534,6 +564,8 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
                     </div>
                 )}
             </div>
+
+            <PrintReceipt receipt={printTarget} />
         </div>
     );
-                        }
+}
