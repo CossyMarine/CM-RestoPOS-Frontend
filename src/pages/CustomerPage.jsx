@@ -12,10 +12,11 @@ const SOCKET_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000").rep
 
 const STATUS_STYLE = {
   pending:   "bg-amber-100 text-amber-700",
+  serving:   "bg-blue-100 text-blue-700",
   completed: "bg-green-100 text-green-700",
   cancelled: "bg-red-100 text-red-700",
 };
-const STATUS_LABEL = { pending: "Pending", completed: "Delivered", cancelled: "Cancelled" };
+const STATUS_LABEL = { pending: "Pending", serving: "Serving", completed: "Delivered", cancelled: "Cancelled" };
 
 const FAVORITES_KEY = "customer_favorite_meals";
 
@@ -119,9 +120,11 @@ export default function CustomerPage() {
   useEffect(() => {
     if (!user) return;
     const socket = io(SOCKET_URL);
-    socket.on("order:created", (payload) => {
+    // Fired when the order is first placed (still awaiting a waiter)
+    socket.on("onlineOrder:new", (payload) => {
       if (String(payload.order?.customer) === String(user.id)) loadOrders();
     });
+    // Fired on every later status change: pending -> serving -> completed/cancelled
     socket.on("order:updated", (order) => {
       if (String(order.customer) === String(user.id)) {
         setOrders((prev) => prev.map((o) => (o._id === order._id ? { ...o, status: order.status } : o)));
@@ -439,4 +442,4 @@ export default function CustomerPage() {
       <BottomNav />
     </div>
   );
-    }
+}
