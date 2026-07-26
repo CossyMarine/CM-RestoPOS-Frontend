@@ -87,13 +87,9 @@ export default function WaiterDashboard() {
       .then((res) => setWaiters(res.data))
       .catch(() => toast.error("Could not load waiter list"));
 
-    API.get("/orders/pending")
-      .then((res) => {
-        const online = (res.data || [])
-          .filter((o) => o.source === "online")
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setOnlineOrders(online);
-      })
+    // Online orders still awaiting a waiter to claim them (not yet in the kitchen queue)
+    API.get("/orders/online/awaiting")
+      .then((res) => setOnlineOrders(res.data || []))
       .catch(() => {});
   }, []);
 
@@ -111,9 +107,10 @@ export default function WaiterDashboard() {
   useEffect(() => {
     const socket = io(SOCKET_URL);
 
-    socket.on("order:created", (payload) => {
+    // Fired only when a customer places a new online order — before any
+    // waiter has claimed it, so this is the one place it should show up.
+    socket.on("onlineOrder:new", (payload) => {
       const order = payload.order;
-      if (order?.source !== "online") return;
       setOnlineOrders((prev) => [order, ...prev.filter((o) => o._id !== order._id)]);
       setUnseenCount((c) => c + 1);
       toast.info(`New online order — ${firstNameOf(order.customerName)}, Table ${order.tableNumber}`);
