@@ -2,14 +2,14 @@ export default function PrintReceipt({ receipt }) {
     if (!receipt) return null;
 
     const date = new Date(receipt.createdAt);
-    const dateStr = date.toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric' });
-    const timeStr = date.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = date.toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi', day: '2-digit', month: 'short', year: 'numeric' });
+    const timeStr = date.toLocaleTimeString('en-KE', { timeZone: 'Africa/Nairobi', hour: '2-digit', minute: '2-digit' });
 
     return (
         <div id="print-receipt" className="hidden print:block font-mono text-black bg-white p-4 w-72 text-sm">
             <div className="text-center mb-2">
                 <p>=====================================</p>
-                <p className="font-bold">RESTO POS</p>
+                <p className="font-bold">CossyMarine Hotel</p>
                 <p>SALES RECEIPT</p>
                 <p>=====================================</p>
             </div>
