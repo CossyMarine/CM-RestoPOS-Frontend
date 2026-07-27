@@ -181,20 +181,24 @@ export default function KitchenPage() {
             }
         });
 
-        // Fired when a waiter adds item(s) to an already-in-progress bill.
-        // The order already exists in the queue (or may have scrolled off if
-        // it was never here) — either way, re-sync its items and re-flag it
-        // as "new" so the kitchen notices the addition and rings the alarm,
-        // instead of silently updating a card no one is watching anymore.
-        socket.on('order:itemsAdded', ({ order }) => {
+        // Fired when a waiter adds item(s) to a bill.
+        // - If the order was still active in the queue: refresh it in place
+        //   (the added lines get an "Added" badge in OrderCard).
+        // - If the order had already been served/cancelled and cleared off
+        //   this screen (`reopened`): don't resurrect the old card with all
+        //   its already-done items. Show a fresh, standalone ticket
+        //   containing only the newly added items, same as a brand-new order.
+        socket.on('order:itemsAdded', ({ order, addedItems, reopened }) => {
             if (!order) return;
+            const displayOrder = reopened ? { ...order, items: addedItems || order.items } : order;
+
             setOrders((prev) => {
-                const exists = prev.some((o) => o._id === order._id);
+                const exists = prev.some((o) => o._id === displayOrder._id);
                 return exists
-                    ? prev.map((o) => (o._id === order._id ? { ...o, ...order } : o))
-                    : [...prev, order];
+                    ? prev.map((o) => (o._id === displayOrder._id ? { ...o, ...displayOrder } : o))
+                    : [...prev, displayOrder];
             });
-            setNewOrderIds((prev) => new Set(prev).add(order._id));
+            setNewOrderIds((prev) => new Set(prev).add(displayOrder._id));
             playAlarmOnce();
         });
 
@@ -371,4 +375,4 @@ export default function KitchenPage() {
             <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} resolveImg={resolveImg} />
         </div>
     );
-        }
+                                      }
