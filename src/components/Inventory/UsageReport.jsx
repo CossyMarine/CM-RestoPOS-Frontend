@@ -60,8 +60,8 @@ export default function UsageReport({ onClose }) {
         setDetail(null);
     };
 
-    const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-    const fmtTime = (d) => new Date(d).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const fmtDate = (d) => new Date(d).toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi', day: 'numeric', month: 'short' });
+    const fmtTime = (d) => new Date(d).toLocaleTimeString('en-KE', { timeZone: 'Africa/Nairobi', hour: '2-digit', minute: '2-digit' });
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 py-6">
@@ -250,4 +250,4 @@ export default function UsageReport({ onClose }) {
             </div>
         </div>
     );
-}
+                                                        }
