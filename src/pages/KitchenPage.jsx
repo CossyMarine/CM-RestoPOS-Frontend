@@ -181,6 +181,23 @@ export default function KitchenPage() {
             }
         });
 
+        // Fired when a waiter adds item(s) to an already-in-progress bill.
+        // The order already exists in the queue (or may have scrolled off if
+        // it was never here) — either way, re-sync its items and re-flag it
+        // as "new" so the kitchen notices the addition and rings the alarm,
+        // instead of silently updating a card no one is watching anymore.
+        socket.on('order:itemsAdded', ({ order }) => {
+            if (!order) return;
+            setOrders((prev) => {
+                const exists = prev.some((o) => o._id === order._id);
+                return exists
+                    ? prev.map((o) => (o._id === order._id ? { ...o, ...order } : o))
+                    : [...prev, order];
+            });
+            setNewOrderIds((prev) => new Set(prev).add(order._id));
+            playAlarmOnce();
+        });
+
         socket.on('kitchen:settings_updated', (updated) => setSettings(updated));
 
         return () => {
@@ -354,4 +371,4 @@ export default function KitchenPage() {
             <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} resolveImg={resolveImg} />
         </div>
     );
-            }
+        }
