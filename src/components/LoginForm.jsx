@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import API from "../api/axios";
 
 export default function LoginForm({ onSuccess, onSwitchToRegister }) {
@@ -17,7 +18,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }) {
       toast.success(`Welcome back, ${res.data.user.fullName}`);
       onSuccess?.(res.data.user);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid login or password");
+      toast.error(err.response?.data?.message || "Invalid login credentials");
     } finally {
       setLoading(false);
     }
@@ -25,64 +26,80 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Email / Phone Field */}
       <div>
-        <label className="block text-sm font-semibold text-stone-700 mb-1.5">
-          Email or phone
+        <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1.5">
+          Email or Phone
         </label>
-        <input
-          type="text"
-          placeholder="e.g. jane@mail.com or 07XX XXX XXX"
-          value={identifier}
-          onChange={(e) => setIdentifier(e.target.value)}
-          required
-          autoFocus
-          className="w-full border border-stone-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-        />
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+            <Mail size={16} />
+          </div>
+          <input
+            type="text"
+            placeholder="e.g. jane@mail.com or 07XX XXX XXX"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            required
+            autoFocus
+            className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-10 pr-4 py-3 text-sm text-stone-900 font-medium placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+          />
+        </div>
       </div>
 
+      {/* Password Field */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-sm font-semibold text-stone-700">Password</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-stone-600">
+            Password
+          </label>
           <Link
             to="/forgot-password"
-            className="text-xs text-orange-500 font-semibold hover:text-orange-600"
+            className="text-xs text-orange-500 font-bold hover:text-orange-600 transition-colors"
           >
             Forgot password?
           </Link>
         </div>
         <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+            <Lock size={16} />
+          </div>
           <input
             type={showPass ? "text" : "password"}
             placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full border border-stone-300 rounded-xl px-4 py-3 pr-14 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+            className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-10 pr-12 py-3 text-sm text-stone-900 font-medium placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
           />
           <button
             type="button"
             onClick={() => setShowPass(!showPass)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 text-xs font-semibold"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors p-1"
+            aria-label={showPass ? "Hide password" : "Show password"}
           >
-            {showPass ? "Hide" : "Show"}
+            {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
         </div>
       </div>
 
+      {/* Submit Button */}
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors"
+        className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-bold py-3.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 group active:scale-[0.99]"
       >
-        {loading ? "Signing in…" : "Sign In"}
+        <span>{loading ? "Signing in…" : "Sign In"}</span>
+        {!loading && <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />}
       </button>
 
-      <p className="text-center text-sm text-stone-500 pt-1">
+      {/* Switch to Register */}
+      <p className="text-center text-xs font-semibold text-stone-500 pt-2">
         Don't have an account?{" "}
         <button
           type="button"
           onClick={onSwitchToRegister}
-          className="text-orange-500 font-semibold hover:text-orange-600"
+          className="text-orange-500 font-bold hover:text-orange-600 transition-colors underline underline-offset-2"
         >
           Sign up
         </button>
