@@ -19,6 +19,7 @@ const STATUS_STYLE = {
 const STATUS_LABEL = { pending: "Pending", serving: "Serving", completed: "Delivered", cancelled: "Cancelled" };
 
 const FAVORITES_KEY = "customer_favorite_meals";
+const REORDER_KEY = "reorder_cart"; // written by OrdersPage.jsx when the customer taps "Reorder"
 
 function getStoredFavorites() {
   try {
@@ -90,6 +91,44 @@ export default function CustomerPage() {
       .catch(() => toast.error("Couldn't load the menu"))
       .finally(() => setLoading(false));
   }, []);
+
+  // ---- Reorder: prefill the cart once the menu is loaded ----
+  // OrdersPage.jsx stashes { name, price, qty } under REORDER_KEY and sends
+  // the customer here. We resolve each stashed line against the live menu
+  // (by name) so id/imageUrl/price are current, and drop anything that's
+  // been taken off the menu since.
+  useEffect(() => {
+    if (loading || menu.length === 0) return;
+    const raw = localStorage.getItem(REORDER_KEY);
+    if (!raw) return;
+
+    try {
+      const stored = JSON.parse(raw);
+      const rebuilt = stored
+        .map((s) => {
+          const match = menu.find((m) => m.name === s.name);
+          return match
+            ? {
+                id: match._id,
+                name: match.name,
+                price: Number(match.price),
+                imageUrl: match.imageUrl || null,
+                qty: s.qty,
+              }
+            : null;
+        })
+        .filter(Boolean);
+
+      if (rebuilt.length > 0) {
+        setCart(rebuilt);
+        toast.success("Cart pre-filled from your last order — review and place it");
+      }
+    } catch {
+      // malformed stored cart — ignore
+    } finally {
+      localStorage.removeItem(REORDER_KEY);
+    }
+  }, [loading, menu]);
 
   useEffect(() => {
     API.get("/settings/public")
@@ -442,4 +481,4 @@ export default function CustomerPage() {
       <BottomNav />
     </div>
   );
-}
+      }
