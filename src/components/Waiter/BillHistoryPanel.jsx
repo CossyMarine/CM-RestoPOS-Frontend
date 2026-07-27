@@ -1,4 +1,5 @@
 import { Search, ChevronLeft, ChevronRight, Printer, PackagePlus, Trash2, Eye } from "lucide-react";
+import { formatKenyanDateTime } from "../../utils/formatDate";
 
 export default function BillHistoryPanel({
   receipts,
@@ -67,7 +68,7 @@ export default function BillHistoryPanel({
                     <td className="p-4 font-bold text-stone-900">
                       {bill.billId}
                       <div className="text-[10px] text-stone-400 font-normal mt-0.5">
-                        {new Date(bill.createdAt).toLocaleString()}
+                        {formatKenyanDateTime(bill.createdAt)}
                       </div>
                     </td>
                     <td className="p-4 font-bold">Table {bill.tableNumber}</td>
@@ -154,4 +155,4 @@ export default function BillHistoryPanel({
       </div>
     </div>
   );
-}
+                      }
