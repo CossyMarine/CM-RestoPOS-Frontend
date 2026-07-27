@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { Clock, Unlock, LockKeyhole, ChevronLeft, Printer } from 'lucide-react';
 import API from '../../api/axios';
+import { formatKenyanDateTime } from '../../utils/formatDate';
 
 const PERMISSION_LABELS = {
     inventory: 'Inventory',
@@ -171,11 +172,11 @@ export default function AccountantManagement() {
                                         <div key={s._id} className="flex items-center justify-between text-sm border-b border-gray-100 pb-2">
                                             <div className="flex items-center gap-2">
                                                 {s.status === 'open' ? <Unlock size={14} className="text-emerald-500" /> : <LockKeyhole size={14} className="text-gray-400" />}
-                                                <span className="font-semibold">{new Date(s.createdAt).toLocaleString()}</span>
+                                                <span className="font-semibold">{formatKenyanDateTime(s.createdAt)}</span>
                                             </div>
                                             <span className="text-gray-400 flex items-center gap-1">
                                                 <Clock size={12} />
-                                                {s.status === 'open' ? 'Still open' : `Closed ${new Date(s.closedAt).toLocaleString()}`}
+                                                {s.status === 'open' ? 'Still open' : `Closed ${formatKenyanDateTime(s.closedAt)}`}
                                             </span>
                                         </div>
                                     ))}
@@ -236,7 +237,7 @@ export default function AccountantManagement() {
                                         a.lastShift.status === 'open' ? (
                                             <span className="text-emerald-600 font-bold flex items-center gap-1"><Unlock size={12} /> Shift open</span>
                                         ) : (
-                                            <span className="text-gray-400">Last closed {new Date(a.lastShift.closedAt).toLocaleString()}</span>
+                                            <span className="text-gray-400">Last closed {formatKenyanDateTime(a.lastShift.closedAt)}</span>
                                         )
                                     ) : (
                                         <span className="text-gray-300">No shifts yet</span>
