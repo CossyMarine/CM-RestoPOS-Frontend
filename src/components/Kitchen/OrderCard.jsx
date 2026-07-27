@@ -36,30 +36,45 @@ export default function OrderCard({ order, isNew, age, isCritical, isLate, sizeC
             </div>
 
             <div className="space-y-2 mb-6">
-                {(order.items || []).map((item, i) => (
-                    <button
-                        key={i}
-                        onClick={() => onToggleItem(order, i)}
-                        className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors border ${
-                            item.ready
-                                ? 'bg-emerald-50/60 border-emerald-200'
-                                : 'bg-gray-50 border-gray-100 hover:border-gray-200'
-                        }`}
-                    >
-                        <span
-                            className={`w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${
-                                item.ready ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300 bg-white'
+                {(order.items || []).map((item, i) => {
+                    const isAdded = !!item.addedAt;
+                    return (
+                        <button
+                            key={i}
+                            onClick={() => onToggleItem(order, i)}
+                            className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors border ${
+                                item.ready
+                                    ? 'bg-emerald-50/60 border-emerald-200'
+                                    : isAdded
+                                    ? 'bg-amber-50 border-amber-300'
+                                    : 'bg-gray-50 border-gray-100 hover:border-gray-200'
                             }`}
                         >
-                            {item.ready && <span className="text-xs font-bold">✓</span>}
-                        </span>
-                        <ItemImage src={resolveImg(item)} alt={item.mealName} className={`${sizeCfg.img} w-auto aspect-square`} />
-                        <span className={`font-bold ${sizeCfg.name} flex-1 ${item.ready ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-                            {item.mealName}
-                        </span>
-                        <span className={`font-black ${sizeCfg.qty} text-orange-500`}>×{item.quantity}</span>
-                    </button>
-                ))}
+                            <span
+                                className={`w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${
+                                    item.ready ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300 bg-white'
+                                }`}
+                            >
+                                {item.ready && <span className="text-xs font-bold">✓</span>}
+                            </span>
+                            <ItemImage src={resolveImg(item)} alt={item.mealName} className={`${sizeCfg.img} w-auto aspect-square`} />
+                            <span className={`font-bold ${sizeCfg.name} flex-1 ${item.ready ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                                <span className="inline-flex items-center gap-1.5 flex-wrap">
+                                    {item.mealName}
+                                    {isAdded && !item.ready && (
+                                        <span className="text-[10px] font-black uppercase tracking-wide bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded">
+                                            Added
+                                        </span>
+                                    )}
+                                </span>
+                                <span className={`block font-semibold ${sizeCfg.price} ${item.ready ? 'text-gray-400' : 'text-orange-500'}`}>
+                                    KSh {Number(item.unitPrice).toLocaleString()}
+                                </span>
+                            </span>
+                            <span className={`font-black ${sizeCfg.qty} text-orange-500`}>×{item.quantity}</span>
+                        </button>
+                    );
+                })}
             </div>
 
             <div className="flex gap-2">
