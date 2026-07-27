@@ -8,6 +8,8 @@ import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import PaymentDetailsModal from './PaymentDetailsModal';
 import ConfirmModal from './ConfirmModal';
+import { PaymentSummaryCards } from './PaymentSummaryCards';
+import { PaymentFilters } from './PaymentFilters';
 
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
@@ -43,8 +45,15 @@ export default function PaymentsView({ onPendingChange }) {
     const [txLoading, setTxLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [methodFilter, setMethodFilter] = useState('');
-    const [dateFrom, setDateFrom] = useState('');
-    const [dateTo, setDateTo] = useState('');
+
+    // ---- Date range filter (presets are Kenya/EAT-anchored, computed server-side) ----
+    const [activePreset, setActivePreset] = useState('today');
+    const [rangeStart, setRangeStart] = useState('');
+    const [rangeEnd, setRangeEnd] = useState('');
+
+    // ---- Summary cards ----
+    const [summary, setSummary] = useState({});
+    const [summaryLoading, setSummaryLoading] = useState(false);
 
     // ---- Pending confirmations ----
     const [pending, setPending] = useState([]);
@@ -55,14 +64,25 @@ export default function PaymentsView({ onPendingChange }) {
     // ---- View bill modal ----
     const [viewing, setViewing] = useState(null);
 
+    // Turns the active preset / custom calendar range into API params.
+    // Presets are resolved server-side against Africa/Nairobi time; a custom
+    // range sends explicit ISO from/to based on the picked calendar days.
+    const buildRangeParams = useCallback(() => {
+        if (activePreset === 'custom') {
+            const params = {};
+            if (rangeStart) params.from = new Date(`${rangeStart}T00:00:00`).toISOString();
+            if (rangeEnd) params.to = new Date(`${rangeEnd}T23:59:59.999`).toISOString();
+            return params;
+        }
+        return { preset: activePreset };
+    }, [activePreset, rangeStart, rangeEnd]);
+
     const fetchTransactions = useCallback(async (page = 1) => {
         setTxLoading(true);
         try {
-            const params = { page, limit: 15 };
+            const params = { page, limit: 15, ...buildRangeParams() };
             if (search) params.q = search;
             if (methodFilter) params.method = methodFilter;
-            if (dateFrom) params.from = new Date(dateFrom).toISOString();
-            if (dateTo) params.to = new Date(dateTo).toISOString();
             const res = await API.get('/payments/transactions', { params });
             setTransactions(res.data.transactions);
             setTxPage(res.data.page);
@@ -73,7 +93,19 @@ export default function PaymentsView({ onPendingChange }) {
             toast.error('Failed to load transactions');
         }
         setTxLoading(false);
-    }, [search, methodFilter, dateFrom, dateTo]);
+    }, [search, methodFilter, buildRangeParams]);
+
+    const fetchSummary = useCallback(async () => {
+        setSummaryLoading(true);
+        try {
+            const res = await API.get('/payments/summary', { params: buildRangeParams() });
+            setSummary(res.data);
+        } catch (err) {
+            console.error('Failed to fetch payment summary', err);
+            toast.error('Failed to load payment summary');
+        }
+        setSummaryLoading(false);
+    }, [buildRangeParams]);
 
     const fetchPending = useCallback(async () => {
         setPendingLoading(true);
@@ -95,14 +127,18 @@ export default function PaymentsView({ onPendingChange }) {
         const t = setTimeout(() => fetchTransactions(1), 350);
         return () => clearTimeout(t);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, methodFilter, dateFrom, dateTo]);
+    }, [search, methodFilter, activePreset, rangeStart, rangeEnd]);
+
+    useEffect(() => {
+        fetchSummary();
+    }, [fetchSummary]);
 
     useEffect(() => {
         const socket = io(SOCKET_URL);
         socket.on('receipt:manualPending', () => fetchPending());
         socket.on('receipt:manualPaymentResolved', () => fetchPending());
-        socket.on('receipt:paid', () => fetchTransactions(1));
-        socket.on('receipt:updated', () => fetchTransactions(1));
+        socket.on('receipt:paid', () => { fetchTransactions(1); fetchSummary(); });
+        socket.on('receipt:updated', () => { fetchTransactions(1); fetchSummary(); });
         return () => socket.disconnect();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -116,6 +152,7 @@ export default function PaymentsView({ onPendingChange }) {
             setPendingAction(null);
             fetchPending();
             fetchTransactions(txPage);
+            fetchSummary();
             onPendingChange?.();
         } catch (err) {
             console.error('Failed to resolve pending payment', err);
@@ -142,13 +179,25 @@ export default function PaymentsView({ onPendingChange }) {
                     <p className="text-sm text-gray-500">All transactions, and till payments waiting confirmation</p>
                 </div>
                 <button
-                    onClick={() => { fetchTransactions(txPage); fetchPending(); }}
+                    onClick={() => { fetchTransactions(txPage); fetchPending(); fetchSummary(); }}
                     className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-orange-500/40 text-gray-500 hover:text-orange-500 px-3 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                 >
-                    <RefreshCw size={14} className={txLoading || pendingLoading ? 'animate-spin' : ''} />
+                    <RefreshCw size={14} className={txLoading || pendingLoading || summaryLoading ? 'animate-spin' : ''} />
                     Refresh
                 </button>
             </div>
+
+            <PaymentSummaryCards metrics={summary} />
+
+            <PaymentFilters
+                activePreset={activePreset}
+                setActivePreset={setActivePreset}
+                startDate={rangeStart}
+                setStartDate={setRangeStart}
+                endDate={rangeEnd}
+                setEndDate={setRangeEnd}
+                onPresetChange={() => {}}
+            />
 
             <div className="flex gap-2 flex-wrap">
                 <button
@@ -202,21 +251,9 @@ export default function PaymentsView({ onPendingChange }) {
                             <option value="reward">Reward</option>
                             <option value="both">Split</option>
                         </select>
-                        <input
-                            type="date"
-                            value={dateFrom}
-                            onChange={(e) => setDateFrom(e.target.value)}
-                            className="border border-gray-200 rounded-lg px-3 py-2 text-xs bg-gray-50 font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-                        />
-                        <input
-                            type="date"
-                            value={dateTo}
-                            onChange={(e) => setDateTo(e.target.value)}
-                            className="border border-gray-200 rounded-lg px-3 py-2 text-xs bg-gray-50 font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-                        />
-                        {(search || methodFilter || dateFrom || dateTo) && (
+                        {(search || methodFilter) && (
                             <button
-                                onClick={() => { setSearch(''); setMethodFilter(''); setDateFrom(''); setDateTo(''); }}
+                                onClick={() => { setSearch(''); setMethodFilter(''); }}
                                 className="text-xs font-bold text-gray-400 hover:text-red-500"
                             >
                                 Clear
@@ -375,4 +412,4 @@ export default function PaymentsView({ onPendingChange }) {
             />
         </div>
     );
-                    }
+                                                            }
