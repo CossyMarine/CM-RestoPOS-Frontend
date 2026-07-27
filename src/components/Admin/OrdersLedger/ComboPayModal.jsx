@@ -13,6 +13,12 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const [rewardAmount, setRewardAmount] = useState('');
     const [rewardIdentifier, setRewardIdentifier] = useState('');
     const [processing, setProcessing] = useState(false);
+
+    // ---- "Give Reward" — optional cashback for cash/till/both, for a payer
+    // who isn't necessarily the bill's registered customer ----
+    const [giveReward, setGiveReward] = useState(false);
+    const [giveRewardIdentifier, setGiveRewardIdentifier] = useState('');
+
     const [mpesaState, setMpesaState] = useState('idle'); // idle | pending | failed
     const [mpesaMessage, setMpesaMessage] = useState('');
     const [remaining, setRemaining] = useState(0);
@@ -43,6 +49,8 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
         setTillAmount('');
         setRewardAmount('');
         setRewardIdentifier('');
+        setGiveReward(false);
+        setGiveRewardIdentifier('');
         setMpesaState('idle');
         setMpesaMessage('');
         setComboCash('');
@@ -53,6 +61,23 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const handleClose = () => { reset(); onClose(); };
 
     const refreshAfterPayment = () => onPaid?.();
+
+    // Fires the manual "Give Reward" cashback for a walk-in payer identified by
+    // email/phone, on top of whatever automatic cashback the payment already
+    // earned via a linked receipt.customer. Never blocks the payment flow —
+    // failures here are surfaced but the payment itself has already succeeded.
+    const submitGiveReward = async (amountJustPaid) => {
+        if (!giveReward || !giveRewardIdentifier.trim() || !amountJustPaid || amountJustPaid <= 0) return;
+        try {
+            const res = await API.post('/wallet/admin/add-reward', {
+                identifier: giveRewardIdentifier.trim(),
+                amountSpent: amountJustPaid,
+            });
+            toast.success(res.data.message || 'Reward credited');
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Payment recorded, but the reward could not be credited');
+        }
+    };
 
     // Prints the receipt with its payment breakdown once a bill is fully
     // settled — gated by the admin's "allow printing during payment" toggle.
@@ -110,6 +135,7 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
         try {
             const res = await API.patch(`/receipts/${receipt._id}/pay`, { amountPaid: received });
             toast.success('Payment recorded');
+            await submitGiveReward(remaining);
             printPaidReceipt(res.data.receipt);
             reset();
             onPaid?.();
@@ -131,6 +157,7 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
         try {
             const res = await API.post('/wallet/pay/manual', { receiptId: receipt._id, amount: amt });
             toast.success('Payment recorded');
+            await submitGiveReward(amt);
             const newRemaining = Number((remaining - amt).toFixed(2));
             if (newRemaining <= 0) {
                 // NOTE: confirm this endpoint returns `receipt` in its response body.
@@ -234,6 +261,7 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
                 rewardAmount: 0,
             });
             toast.success(res.data.message);
+            await submitGiveReward(comboEntered);
             const newRemaining = res.data.balanceRemaining ?? 0;
             setRemaining(newRemaining);
             setComboCash('');
@@ -270,6 +298,42 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
         }
         setComboSendingPrompt(false);
     };
+
+    // Shared "Give Reward" checkbox + identifier field, rendered under
+    // Cash / Till / Both. Not shown for Prompt (async, settles later via
+    // webhook) or Reward (already redeeming points, not earning them).
+    const renderGiveRewardBlock = () => (
+        <div className="mb-4 border border-emerald-100 bg-emerald-50/50 rounded-xl p-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                    type="checkbox"
+                    checked={giveReward}
+                    onChange={(e) => setGiveReward(e.target.checked)}
+                    className="w-4 h-4 rounded accent-emerald-600"
+                />
+                <span className="text-sm font-bold text-emerald-800 flex items-center gap-1">
+                    <Gift size={14} /> Give Reward
+                </span>
+            </label>
+            {giveReward && (
+                <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <label className="text-xs text-emerald-700 uppercase tracking-widest mb-1 block font-bold">
+                        Customer Email or Phone
+                    </label>
+                    <input
+                        type="text"
+                        value={giveRewardIdentifier}
+                        onChange={(e) => setGiveRewardIdentifier(e.target.value)}
+                        placeholder="Registered email or phone"
+                        className="w-full bg-white border border-emerald-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-400"
+                    />
+                    <p className="text-[11px] text-emerald-700/70 mt-1">
+                        Cashback is credited according to the current reward settings.
+                    </p>
+                </div>
+            )}
+        </div>
+    );
 
     return (
         <>
@@ -372,6 +436,7 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
                                                     : `Change: KES ${cashChange.toFixed(2)}`}
                                             </p>
                                         )}
+                                        <div className="mt-4">{renderGiveRewardBlock()}</div>
                                     </div>
                                 )}
 
@@ -409,6 +474,7 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
                                                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
                                             />
                                         </div>
+                                        {renderGiveRewardBlock()}
                                     </div>
                                 )}
 
@@ -482,6 +548,8 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
                                                 ? `Over by KES ${Math.abs(comboAfterApply).toLocaleString()}`
                                                 : `Remaining after this: KES ${comboAfterApply.toLocaleString()}`}
                                         </div>
+
+                                        {renderGiveRewardBlock()}
 
                                         <div className="flex gap-3 mb-4">
                                             <button
@@ -584,4 +652,4 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
             )}
         </>
     );
-                        }
+        }
