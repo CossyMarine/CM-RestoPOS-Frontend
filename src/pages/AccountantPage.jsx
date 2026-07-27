@@ -65,6 +65,10 @@ export default function AccountantPage() {
     const active = enabledModules.find((m) => m.id === activeView) || enabledModules[0];
     const ActiveComponent = active?.Component;
 
+    // Any module that gates its actions on shift status needs the bar visible
+    // so the user can see/open/close their shift — not just the Payments tab.
+    const needsShiftBar = permissions.payments || permissions.ordersReceipts;
+
     return (
         <div className="min-h-screen bg-gray-50 text-gray-800 flex">
             <AdminSidebar
@@ -77,7 +81,7 @@ export default function AccountantPage() {
                 title="Accounts Console"
             />
             <main className="flex-1 p-8 overflow-y-auto h-screen">
-                {permissions.payments && <ShiftBar onShiftChange={setShiftOpen} />}
+                {needsShiftBar && <ShiftBar onShiftChange={setShiftOpen} />}
                 {ActiveComponent ? (
                     active.id === 'orders'
                         ? <ActiveComponent shiftOpen={!!shiftOpen} />
@@ -90,4 +94,4 @@ export default function AccountantPage() {
             </main>
         </div>
     );
-            }
+}
