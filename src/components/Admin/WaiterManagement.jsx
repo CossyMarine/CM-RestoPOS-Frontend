@@ -3,6 +3,7 @@ import { RefreshCw, Search, Eye, Ban, CheckCircle2, Trash2, ListFilter, X, Arrow
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import ConfirmModal from './ConfirmModal';
+import { formatKenyanDate, formatKenyanDateTime, formatKenyanTime } from '../../utils/formatDate';
 
 const STATUS_TABS = [
   { value: 'all', label: 'All' },
@@ -168,7 +169,7 @@ export default function WaiterManagement() {
             <div>
               <h2 className="text-2xl font-black text-gray-800">{selectedWaiter.fullName}</h2>
               <p className="text-sm text-gray-500">
-                Waiter since {new Date(selectedWaiter.waiterSince).toLocaleDateString()} ·{' '}
+                Waiter since {formatKenyanDate(selectedWaiter.waiterSince)} ·{' '}
                 {selectedWaiter.waiterSource === 'promoted' ? 'Promoted from another role' : 'Added directly as waiter'}
                 {' · '}Contact: {selectedWaiter.email || selectedWaiter.phone || '—'}
               </p>
@@ -197,10 +198,10 @@ export default function WaiterManagement() {
                 ) : (
                   selectedWaiter.shiftHistory.map((s) => (
                     <div key={s._id} className="p-3 flex items-center justify-between text-sm">
-                      <span className="text-gray-600">{new Date(s.createdAt).toLocaleString()}</span>
+                      <span className="text-gray-600">{formatKenyanDateTime(s.createdAt)}</span>
                       <span className="text-gray-400 text-xs">Float: {fmt(s.openingFloat)}</span>
                       <span className={`font-bold text-xs ${s.status === 'open' ? 'text-emerald-600' : 'text-gray-400'}`}>
-                        {s.status === 'open' ? 'Open' : `Closed ${new Date(s.closedAt).toLocaleTimeString()}`}
+                        {s.status === 'open' ? 'Open' : `Closed ${formatKenyanTime(s.closedAt)}`}
                       </span>
                     </div>
                   ))
@@ -310,7 +311,7 @@ export default function WaiterManagement() {
                     className="hover:bg-gray-50/70 transition-colors cursor-pointer"
                   >
                     <td className="p-3 font-bold text-gray-800">{w.fullName}</td>
-                    <td className="p-3 text-xs text-gray-400">{new Date(w.waiterSince).toLocaleDateString()}</td>
+                    <td className="p-3 text-xs text-gray-400">{formatKenyanDate(w.waiterSince)}</td>
                     <td className="p-3">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${
                         w.waiterSource === 'promoted' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200'
@@ -466,4 +467,4 @@ export default function WaiterManagement() {
       />
     </div>
   );
-        }
+                                                                  }
