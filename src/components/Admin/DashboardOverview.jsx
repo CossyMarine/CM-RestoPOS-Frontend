@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Eye, RefreshCw, ShieldAlert, Wallet, ReceiptText, Users, TrendingUp } from 'lucide-react';
 import API from '../../api/axios';
 import ViewItemsModal from './ViewItemsModal';
+import { kenyanDayBound, formatKenyanDateTime } from '../../utils/formatDate';
 
 export default function DashboardOverview() {
     const [revenueToday, setRevenueToday] = useState({ totalRevenue: 0, paidReceiptsCount: 0 });
@@ -49,8 +50,10 @@ export default function DashboardOverview() {
 
         if (!dateFrom && !dateTo) return all.slice(0, 15);
 
-        const from = dateFrom ? new Date(dateFrom) : null;
-        const to = dateTo ? new Date(new Date(dateTo).setHours(23, 59, 59, 999)) : null;
+        // Anchored to the Kenyan calendar day the picker value falls on,
+        // not the browser's own timezone.
+        const from = kenyanDayBound(dateFrom, 'start');
+        const to = kenyanDayBound(dateTo, 'end');
 
         return all.filter((r) => {
             const created = new Date(r.createdAt);
@@ -180,7 +183,7 @@ export default function DashboardOverview() {
                                         <td className="p-3 font-semibold">Table {r.tableNumber}</td>
                                         <td className="p-3 font-bold text-gray-800">KES {r.subtotal.toLocaleString()}</td>
                                         <td className="p-3 text-xs text-gray-400">
-                                            {new Date(r.createdAt).toLocaleString()}
+                                            {formatKenyanDateTime(r.createdAt)}
                                         </td>
                                         <td className="p-3">
                                             <StatusPill status={r.status} />
