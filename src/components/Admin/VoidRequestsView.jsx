@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import ConfirmModal from './ConfirmModal';
 import ViewItemsModal from './ViewItemsModal';
+import { formatKenyanDateTime } from '../../utils/formatDate';
 
 export default function VoidRequestsView() {
     const [requests, setRequests] = useState([]);
@@ -86,7 +87,7 @@ export default function VoidRequestsView() {
                                         <td className="p-3 font-semibold text-gray-800">Table {v.receipt?.tableNumber}</td>
                                         <td className="p-3 font-medium">{v.requestedBy?.fullName || '—'}</td>
                                         <td className="p-3 text-xs text-gray-400">
-                                            {new Date(v.createdAt).toLocaleString()}
+                                            {formatKenyanDateTime(v.createdAt)}
                                         </td>
                                         <td className="p-3 text-xs italic text-amber-700 max-w-xs truncate" title={v.reason}>
                                             {v.reason}
@@ -144,4 +145,4 @@ export default function VoidRequestsView() {
             />
         </div>
     );
-}
+        }
