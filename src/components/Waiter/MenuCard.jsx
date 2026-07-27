@@ -1,11 +1,18 @@
 import { useState } from "react";
 import { Pin, GripVertical, UtensilsCrossed } from "lucide-react";
 
-function MenuImage({ src, alt }) {
+const CARD_STYLES = {
+  small:  { img: "h-16", pad: "p-2",    name: "text-[11px]", price: "text-[11px]", badge: "w-4 h-4 text-[9px]" },
+  medium: { img: "h-24", pad: "p-2.5",  name: "text-xs",      price: "text-xs",     badge: "w-5 h-5 text-[10px]" },
+  large:  { img: "h-32", pad: "p-3",    name: "text-sm",      price: "text-sm",     badge: "w-6 h-6 text-xs" },
+  xlarge: { img: "h-44", pad: "p-4",    name: "text-base",    price: "text-base",   badge: "w-7 h-7 text-sm" },
+};
+
+function MenuImage({ src, alt, imgSizeClass }) {
   const [broken, setBroken] = useState(false);
   if (!src || broken) {
     return (
-      <div className="w-full h-24 rounded-t-xl bg-gradient-to-br from-orange-50 to-stone-100 border-b border-stone-200 flex items-center justify-center">
+      <div className={`w-full ${imgSizeClass} rounded-t-xl bg-gradient-to-br from-orange-50 to-stone-100 border-b border-stone-200 flex items-center justify-center`}>
         <UtensilsCrossed size={22} className="text-orange-300" />
       </div>
     );
@@ -15,7 +22,7 @@ function MenuImage({ src, alt }) {
       src={src}
       alt={alt}
       onError={() => setBroken(true)}
-      className="w-full h-24 rounded-t-xl object-cover border-b border-stone-200"
+      className={`w-full ${imgSizeClass} rounded-t-xl object-cover border-b border-stone-200`}
     />
   );
 }
@@ -28,7 +35,10 @@ export default function MenuCard({
   draggable = false,
   isDragging = false,
   onPointerDownDrag,
+  gridSize = "medium",
 }) {
+  const styles = CARD_STYLES[gridSize] || CARD_STYLES.medium;
+
   return (
     <div
       data-pin-id={item.pinned ? item._id : undefined}
@@ -62,15 +72,15 @@ export default function MenuCard({
       </button>
 
       <button onClick={() => onAdd(item)} className="w-full text-left active:scale-95 transition-transform">
-        <MenuImage src={item.imageUrl} alt={item.name} />
-        <div className="p-2.5">
-          <h3 className="font-bold text-stone-900 text-xs truncate group-hover:text-orange-600 transition-colors">
+        <MenuImage src={item.imageUrl} alt={item.name} imgSizeClass={styles.img} />
+        <div className={styles.pad}>
+          <h3 className={`font-bold text-stone-900 ${styles.name} truncate group-hover:text-orange-600 transition-colors`}>
             {item.name}
           </h3>
           <div className="flex items-center justify-between mt-1">
-            <p className="text-orange-500 font-black text-xs">KSh {Number(item.price).toLocaleString()}</p>
+            <p className={`text-orange-500 font-black ${styles.price}`}>KSh {Number(item.price).toLocaleString()}</p>
             {qtyInCart > 0 && (
-              <span className="w-5 h-5 rounded-full bg-stone-900 text-white text-[10px] font-bold flex items-center justify-center">
+              <span className={`${styles.badge} rounded-full bg-stone-900 text-white font-bold flex items-center justify-center`}>
                 {qtyInCart}
               </span>
             )}
