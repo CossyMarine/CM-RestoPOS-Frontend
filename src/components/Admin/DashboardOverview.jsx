@@ -3,7 +3,7 @@ import { Eye, RefreshCw, ShieldAlert, Wallet, ReceiptText, Users, TrendingUp } f
 import API from '../../api/axios';
 import ViewItemsModal from './ViewItemsModal';
 import { kenyanDayBound, formatKenyanDateTime } from '../../utils/formatDate';
-
+import DashboardAnalytics from './Analytics/DashboardAnalytics';
 export default function DashboardOverview() {
     const [revenueToday, setRevenueToday] = useState({ totalRevenue: 0, paidReceiptsCount: 0 });
     const [revenueSummary, setRevenueSummary] = useState({ totalRevenue: 0, totalReceipts: 0 });
@@ -152,7 +152,7 @@ export default function DashboardOverview() {
                     accent
                 />
             </div>
-
+ <DashboardAnalytics />
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm overflow-hidden">
                 <h3 className="text-lg font-black text-gray-800 mb-4">Recent Receipts</h3>
                 <div className="overflow-x-auto">
