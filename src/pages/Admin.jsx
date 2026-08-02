@@ -16,6 +16,7 @@ import WaiterManagement from '../components/Admin/WaiterManagement';
 import KitchenManagement from '../components/Admin/KitchenManagement';
 import InventoryManagement from '../components/Admin/InventoryManagement';
 import AccountantManagement from '../components/Admin/AccountantManagement';
+import BatchIntegrityTestDashboard from '../components/Admin/BatchIntegrityTestDashboard';
 
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
@@ -30,6 +31,7 @@ const VIEWS = {
     users: UsersManagement,
     waiters: WaiterManagement,
     accountants: AccountantManagement,
+    batchIntegrityTest: BatchIntegrityTestDashboard,
     settings: SettingsManagement,
 };
 
