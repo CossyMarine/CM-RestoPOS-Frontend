@@ -1,7 +1,7 @@
 // src/components/Inventory/InventoryOverview.jsx
 // InventoryOverview.jsx — top of file
 import API from '../../api/axios';
-import '../Analytics/chartSetup';
+import '../Admin/Analytics/chartSetup'
 import { ChartSkeleton, ChartEmptyState } from '../Admin/Analytics/ChartStates';
 import { kenyanDayBound } from '../../utils/formatDate';
 import { formatKES, formatQty, formatShortDate, daysUntil } from './inventoryLabels';
