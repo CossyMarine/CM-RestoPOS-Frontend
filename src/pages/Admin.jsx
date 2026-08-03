@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { toast } from 'react-toastify';
 import { useAuth } from '../hooks/useAuth';
-import API from '../../api/axios';
+import API from '../api/axios';
 import AdminSidebar from '../components/Admin/AdminSidebar';
 import DashboardOverview from '../components/Admin/DashboardOverview';
 import MenuManagement from '../components/Admin/MenuManagement';
