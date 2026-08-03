@@ -3,7 +3,7 @@
 import API from '../../api/axios';
 import StockDetailsModal from './StockDetailsModal';
 import { formatQty, formatShortDate, getStockStatus, buildNearestExpiryMap, STATUS_FILTER_OPTIONS } from './inventoryLabels';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 export default function StockPage({ initialFilters }) {
     const [loading, setLoading] = useState(true);
     const [balances, setBalances] = useState([]);
