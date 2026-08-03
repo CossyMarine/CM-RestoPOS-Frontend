@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowRightLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
-import API from '../../../api/axios';
+import API from '../../api/axios';
 import { itemTypeLabel } from './inventoryLabels';
 
 export default function MoveStock() {

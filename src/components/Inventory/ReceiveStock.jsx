@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, Trash2, PackagePlus } from 'lucide-react';
 import { toast } from 'react-toastify';
-import API from '../../../api/axios';
+import API from '../../api/axios';
 import { itemTypeLabel } from './inventoryLabels';
 
 const emptyLine = () => ({

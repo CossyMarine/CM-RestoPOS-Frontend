@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { toast } from 'react-toastify';
 import { useAuth } from '../hooks/useAuth';
-import API from '../api/axios';
+import API from '../../api/axios';
 import AdminSidebar from '../components/Admin/AdminSidebar';
 import DashboardOverview from '../components/Admin/DashboardOverview';
 import MenuManagement from '../components/Admin/MenuManagement';
@@ -14,7 +14,7 @@ import UsersManagement from '../components/Admin/UsersManagement';
 import SettingsManagement from '../components/Admin/SettingsManagement';
 import WaiterManagement from '../components/Admin/WaiterManagement';
 import KitchenManagement from '../components/Admin/KitchenManagement';
-import InventoryHome from '../components/Admin/Inventory/InventoryHome';
+import InventoryHome from '../components/Inventory/InventoryHome';
 import AccountantManagement from '../components/Admin/AccountantManagement';
 import BatchIntegrityTestDashboard from '../components/Admin/BatchIntegrityTestDashboard';
 

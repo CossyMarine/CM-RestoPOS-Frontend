@@ -1,6 +1,6 @@
 // src/components/Inventory/StockPage.jsx
 // StockPage.jsx — top of file
-import API from '../../../api/axios';
+import API from '../../api/axios';
 import StockDetailsModal from './StockDetailsModal';
 import { formatQty, formatShortDate, getStockStatus, buildNearestExpiryMap, STATUS_FILTER_OPTIONS } from './inventoryLabels';
 

@@ -2,8 +2,8 @@
 // InventoryOverview.jsx — top of file
 import API from '../../../api/axios';
 import '../Analytics/chartSetup';
-import { ChartSkeleton, ChartEmptyState } from '../Analytics/ChartStates';
-import { kenyanDayBound } from '../../../utils/formatDate';
+import { ChartSkeleton, ChartEmptyState } from '../Admin/Analytics/ChartStates';
+import { kenyanDayBound } from '../../utils/formatDate';
 import { formatKES, formatQty, formatShortDate, daysUntil } from './inventoryLabels';
 
 // A calm, repeating palette so the category chart never looks garish

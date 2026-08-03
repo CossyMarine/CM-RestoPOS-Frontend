@@ -1,6 +1,6 @@
 // src/components/Inventory/StockDetailsModal.jsx
 // StockDetailsModal.jsx — top of file
-import API from '../../../api/axios';
+import API from '../../api/axios';
 import { formatKES, formatQty, formatShortDate, daysUntil, getStockStatus } from './inventoryLabels';
 
 const ACTIVITY_ICON = {
