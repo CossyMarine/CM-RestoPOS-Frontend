@@ -5,7 +5,7 @@ import '../Admin/Analytics/chartSetup'
 import { ChartSkeleton, ChartEmptyState } from '../Admin/Analytics/ChartStates';
 import { kenyanDayBound } from '../../utils/formatDate';
 import { formatKES, formatQty, formatShortDate, daysUntil } from './inventoryLabels';
-
+import { Boxes, AlertTriangle, Clock, Wallet, PackagePlus, Trash2 } from 'lucide-react';
 // A calm, repeating palette so the category chart never looks garish
 // regardless of how many categories a restaurant has set up.
 const CATEGORY_COLORS = ['#f97316', '#0ea5e9', '#22c55e', '#a855f7', '#ef4444', '#eab308', '#14b8a6', '#6366f1'];
