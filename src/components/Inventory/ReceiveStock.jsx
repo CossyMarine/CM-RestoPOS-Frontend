@@ -1,6 +1,6 @@
 // src/components/Admin/Inventory/ReceiveStock.jsx
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Trash2, PackagePlus } from 'lucide-react';
+import { Boxes, AlertTriangle, Clock, Wallet, PackagePlus, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import { itemTypeLabel } from './inventoryLabels';
