@@ -1,4 +1,3 @@
-// src/components/Admin/Inventory/InventoryHome.jsx
 import { useState } from 'react';
 import {
     LayoutDashboard, Boxes, PackagePlus, ArrowLeftRight, Truck,
@@ -22,8 +21,6 @@ const NAV_ITEMS = [
     { id: 'expiring', label: 'Expiring Soon', icon: Clock },
 ];
 
-// Tabs that don't have a real page yet — everything else below is wired
-// to a real component (Overview, Stock, Receive Stock, Move Stock).
 const COMING_SOON_COPY = {
     suppliers: { title: 'Suppliers', description: 'Keep a list of who you buy from, their contact details, and what you\u2019ve received from them over time.' },
     orders: { title: 'Orders', description: 'Place and track orders from your suppliers, from draft to delivered.' },
@@ -38,9 +35,6 @@ export default function InventoryHome() {
     const [activeTab, setActiveTab] = useState('overview');
     const [stockFilters, setStockFilters] = useState(null);
 
-    // Tabs are conditionally rendered below, so each one mounts fresh
-    // every time you switch to it — Overview/Stock always show current
-    // numbers after you receive or move stock, with no extra plumbing.
     const goTo = (tabId, filters = null) => {
         if (tabId === 'stock') setStockFilters(filters);
         setActiveTab(tabId);
@@ -50,7 +44,7 @@ export default function InventoryHome() {
         <div className="space-y-6">
             <div>
                 <h2 className="text-2xl font-black text-gray-800">Inventory</h2>
-                <p className="text-sm text-gray-500">Keep track of what you have, what’s low, and what’s about to expire</p>
+                <p className="text-sm text-gray-500">Keep track of what you have, what's low, and what's about to expire</p>
             </div>
 
             <div className="flex gap-1 border-b border-gray-200 overflow-x-auto no-scrollbar">

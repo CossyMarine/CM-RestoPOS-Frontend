@@ -1,4 +1,3 @@
-// src/components/Inventory/ComingSoon.jsx
 export default function ComingSoon({ icon: Icon, title, description }) {
     return (
         <div className="bg-white border border-gray-200 rounded-2xl shadow-sm py-20 px-6 flex flex-col items-center text-center">
