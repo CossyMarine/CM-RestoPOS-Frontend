@@ -14,7 +14,7 @@ import UsersManagement from '../components/Admin/UsersManagement';
 import SettingsManagement from '../components/Admin/SettingsManagement';
 import WaiterManagement from '../components/Admin/WaiterManagement';
 import KitchenManagement from '../components/Admin/KitchenManagement';
-import InventoryManagement from '../components/Admin/InventoryManagement';
+import InventoryHome from '../components/Admin/Inventory/InventoryHome';
 import AccountantManagement from '../components/Admin/AccountantManagement';
 import BatchIntegrityTestDashboard from '../components/Admin/BatchIntegrityTestDashboard';
 
@@ -24,7 +24,7 @@ const VIEWS = {
     dashboard: DashboardOverview,
     menu: MenuManagement,
     kitchen: KitchenManagement,
-    inventory: InventoryManagement,
+    inventory: InventoryHome,
     orders: OrdersLedger,
     payments: PaymentsView,
     voids: VoidRequestsView,
