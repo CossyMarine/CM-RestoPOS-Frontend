@@ -1,4 +1,4 @@
-// src/components/Inventory/InventoryHome.jsx
+// src/components/Admin/Inventory/InventoryHome.jsx
 import { useState } from 'react';
 import {
     LayoutDashboard, Boxes, PackagePlus, ArrowLeftRight, Truck,
@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import InventoryOverview from './InventoryOverview';
 import StockPage from './StockPage';
+import ReceiveStock from './ReceiveStock';
+import MoveStock from './MoveStock';
 import ComingSoon from './ComingSoon';
 
 const NAV_ITEMS = [
@@ -20,20 +22,25 @@ const NAV_ITEMS = [
     { id: 'expiring', label: 'Expiring Soon', icon: Clock },
 ];
 
+// Tabs that don't have a real page yet — everything else below is wired
+// to a real component (Overview, Stock, Receive Stock, Move Stock).
 const COMING_SOON_COPY = {
-    receive: { title: 'Receive Stock', description: "Log deliveries from your suppliers here — quantities, cost, and expiry dates will feed straight into your stock." },
-    move: { title: 'Move Stock', description: 'Move ingredients between your store and kitchen (or any other location) without losing track of where things are.' },
     suppliers: { title: 'Suppliers', description: 'Keep a list of who you buy from, their contact details, and what you\u2019ve received from them over time.' },
     orders: { title: 'Orders', description: 'Place and track orders from your suppliers, from draft to delivered.' },
-    prepared: { title: 'Prepared Food', description: "Turn raw ingredients into finished dishes and track what that used up." },
+    prepared: { title: 'Prepared Food', description: 'Turn raw ingredients into finished dishes and track what that used up.' },
     waste: { title: 'Record Waste', description: 'Log spoiled, damaged, or expired stock so your numbers always reflect reality.' },
     expiring: { title: 'Expiring Soon', description: 'A complete list of every batch approaching its expiry date, across every location.' },
 };
+
+const BUILT_TABS = ['overview', 'stock', 'receive', 'move'];
 
 export default function InventoryHome() {
     const [activeTab, setActiveTab] = useState('overview');
     const [stockFilters, setStockFilters] = useState(null);
 
+    // Tabs are conditionally rendered below, so each one mounts fresh
+    // every time you switch to it — Overview/Stock always show current
+    // numbers after you receive or move stock, with no extra plumbing.
     const goTo = (tabId, filters = null) => {
         if (tabId === 'stock') setStockFilters(filters);
         setActiveTab(tabId);
@@ -68,7 +75,9 @@ export default function InventoryHome() {
 
             {activeTab === 'overview' && <InventoryOverview onNavigate={goTo} />}
             {activeTab === 'stock' && <StockPage initialFilters={stockFilters} />}
-            {activeTab !== 'overview' && activeTab !== 'stock' && (
+            {activeTab === 'receive' && <ReceiveStock />}
+            {activeTab === 'move' && <MoveStock />}
+            {!BUILT_TABS.includes(activeTab) && (
                 <ComingSoon
                     icon={NAV_ITEMS.find((n) => n.id === activeTab)?.icon || Boxes}
                     title={COMING_SOON_COPY[activeTab]?.title}
