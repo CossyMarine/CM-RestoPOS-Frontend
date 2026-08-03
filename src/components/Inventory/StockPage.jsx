@@ -2,6 +2,8 @@
 // StockPage.jsx — top of file
 import API from '../../api/axios';
 import StockDetailsModal from './StockDetailsModal';
+import { Search, Eye, PackageSearch } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { formatQty, formatShortDate, getStockStatus, buildNearestExpiryMap, STATUS_FILTER_OPTIONS } from './inventoryLabels';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 export default function StockPage({ initialFilters }) {

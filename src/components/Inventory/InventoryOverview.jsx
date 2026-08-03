@@ -1,6 +1,7 @@
 // src/components/Inventory/InventoryOverview.jsx
 // InventoryOverview.jsx — top of file
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Doughnut } from 'react-chartjs-2';
 import API from '../../api/axios';
 import '../Admin/Analytics/chartSetup'
 import { ChartSkeleton, ChartEmptyState } from '../Admin/Analytics/ChartStates';
