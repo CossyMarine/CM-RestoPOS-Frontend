@@ -1,8 +1,10 @@
 // src/components/Inventory/StockDetailsModal.jsx
 // StockDetailsModal.jsx — top of file
+// src/components/Inventory/StockDetailsModal.jsx
+import { useState, useEffect, useMemo } from 'react';
+import { X, PackagePlus, ChefHat, Trash2, SlidersHorizontal, Layers } from 'lucide-react';
 import API from '../../api/axios';
 import { formatKES, formatQty, formatShortDate, daysUntil, getStockStatus } from './inventoryLabels';
-import { X, PackagePlus, ChefHat, Trash2, SlidersHorizontal, Layers } from 'lucide-react';
 const ACTIVITY_ICON = {
     received: { icon: PackagePlus, classes: 'bg-green-50 text-green-600' },
     used: { icon: ChefHat, classes: 'bg-gray-100 text-gray-600' },
