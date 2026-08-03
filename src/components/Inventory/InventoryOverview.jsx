@@ -1,5 +1,6 @@
 // src/components/Inventory/InventoryOverview.jsx
 // InventoryOverview.jsx — top of file
+import { useState, useEffect } from 'react';
 import API from '../../api/axios';
 import '../Admin/Analytics/chartSetup'
 import { ChartSkeleton, ChartEmptyState } from '../Admin/Analytics/ChartStates';
