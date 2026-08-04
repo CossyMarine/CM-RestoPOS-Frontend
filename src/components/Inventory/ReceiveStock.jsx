@@ -1,9 +1,11 @@
-// src/components/Admin/Inventory/ReceiveStock.jsx
+// src/components/Inventory/ReceiveStock.jsx
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, Trash2, PackagePlus } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import { itemTypeLabel } from './inventoryLabels';
+
+const OTHER_SUPPLIER = '__other__';
 
 const emptyLine = () => ({
     key: Math.random().toString(36).slice(2),
@@ -13,13 +15,15 @@ const emptyLine = () => ({
     expiryDate: '',
 });
 
-export default function ReceiveStock() {
+export default function ReceiveStock({ onSuccess }) {
     const [loading, setLoading] = useState(true);
     const [items, setItems] = useState([]);
     const [locations, setLocations] = useState([]);
+    const [suppliers, setSuppliers] = useState([]);
 
     const [locationId, setLocationId] = useState('');
-    const [supplierName, setSupplierName] = useState('');
+    const [supplierId, setSupplierId] = useState('');
+    const [supplierNameFallback, setSupplierNameFallback] = useState('');
     const [note, setNote] = useState('');
     const [lines, setLines] = useState([emptyLine()]);
     const [submitting, setSubmitting] = useState(false);
@@ -27,14 +31,15 @@ export default function ReceiveStock() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const [itemsRes, locationsRes] = await Promise.all([
+            const [itemsRes, locationsRes, suppliersRes] = await Promise.all([
                 API.get('/inventory/items'),
                 API.get('/inventory/locations'),
+                API.get('/inventory/suppliers'),
             ]);
             setItems((itemsRes.data || []).filter((i) => i.isActive));
             const locs = (locationsRes.data || []).filter((l) => l.isActive !== false);
             setLocations(locs);
-            // Default to "Store" if present, otherwise the first location
+            setSuppliers((suppliersRes.data || []).filter((s) => s.isActive));
             const store = locs.find((l) => l.code === 'STORE');
             setLocationId((store || locs[0])?._id || '');
         } catch (err) {
@@ -66,7 +71,8 @@ export default function ReceiveStock() {
     const removeLine = (key) => setLines((prev) => (prev.length > 1 ? prev.filter((l) => l.key !== key) : prev));
 
     const resetForm = () => {
-        setSupplierName('');
+        setSupplierId('');
+        setSupplierNameFallback('');
         setNote('');
         setLines([emptyLine()]);
     };
@@ -91,8 +97,12 @@ export default function ReceiveStock() {
             }
         }
 
+        const usingOther = supplierId === OTHER_SUPPLIER;
+        const selectedSupplier = suppliers.find((s) => s._id === supplierId);
+
         const payload = {
-            supplierName: supplierName.trim(),
+            ...(!usingOther && supplierId ? { supplier: supplierId } : {}),
+            supplierName: usingOther ? supplierNameFallback.trim() : (selectedSupplier?.name || ''),
             location: locationId,
             note: note.trim(),
             items: validLines.map((l) => {
@@ -112,8 +122,8 @@ export default function ReceiveStock() {
             await API.post('/inventory/receiving', payload);
             toast.success('Stock received');
             resetForm();
-            // Item balances just changed — refresh so costPerUnit defaults stay current
             load();
+            onSuccess?.();
         } catch (err) {
             console.error('Failed to record receiving', err);
             toast.error(err.response?.data?.message || 'Could not record this delivery');
@@ -149,14 +159,27 @@ export default function ReceiveStock() {
                 </div>
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">
-                        Delivered by (optional)
+                        Supplier
                     </label>
-                    <input
-                        value={supplierName}
-                        onChange={(e) => setSupplierName(e.target.value)}
-                        placeholder="e.g. Fresh Farms Ltd"
+                    <select
+                        value={supplierId}
+                        onChange={(e) => setSupplierId(e.target.value)}
                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-400"
-                    />
+                    >
+                        <option value="">Not specified</option>
+                        {suppliers.map((s) => (
+                            <option key={s._id} value={s._id}>{s.name}</option>
+                        ))}
+                        <option value={OTHER_SUPPLIER}>Other / not listed…</option>
+                    </select>
+                    {supplierId === OTHER_SUPPLIER && (
+                        <input
+                            value={supplierNameFallback}
+                            onChange={(e) => setSupplierNameFallback(e.target.value)}
+                            placeholder="Supplier name"
+                            className="w-full mt-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-400"
+                        />
+                    )}
                 </div>
             </div>
 

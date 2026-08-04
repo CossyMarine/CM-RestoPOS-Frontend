@@ -1,3 +1,4 @@
+// src/components/Inventory/InventoryHome.jsx
 import { useState } from 'react';
 import {
     LayoutDashboard, Boxes, PackagePlus, ArrowLeftRight, Truck,
@@ -7,6 +8,7 @@ import InventoryOverview from './InventoryOverview';
 import StockPage from './StockPage';
 import ReceiveStock from './ReceiveStock';
 import MoveStock from './MoveStock';
+import SuppliersPage from './SuppliersPage';
 import ComingSoon from './ComingSoon';
 
 const NAV_ITEMS = [
@@ -22,14 +24,13 @@ const NAV_ITEMS = [
 ];
 
 const COMING_SOON_COPY = {
-    suppliers: { title: 'Suppliers', description: 'Keep a list of who you buy from, their contact details, and what you\u2019ve received from them over time.' },
     orders: { title: 'Orders', description: 'Place and track orders from your suppliers, from draft to delivered.' },
     prepared: { title: 'Prepared Food', description: 'Turn raw ingredients into finished dishes and track what that used up.' },
     waste: { title: 'Record Waste', description: 'Log spoiled, damaged, or expired stock so your numbers always reflect reality.' },
     expiring: { title: 'Expiring Soon', description: 'A complete list of every batch approaching its expiry date, across every location.' },
 };
 
-const BUILT_TABS = ['overview', 'stock', 'receive', 'move'];
+const BUILT_TABS = ['overview', 'stock', 'receive', 'move', 'suppliers'];
 
 export default function InventoryHome() {
     const [activeTab, setActiveTab] = useState('overview');
@@ -71,6 +72,7 @@ export default function InventoryHome() {
             {activeTab === 'stock' && <StockPage initialFilters={stockFilters} />}
             {activeTab === 'receive' && <ReceiveStock />}
             {activeTab === 'move' && <MoveStock />}
+            {activeTab === 'suppliers' && <SuppliersPage />}
             {!BUILT_TABS.includes(activeTab) && (
                 <ComingSoon
                     icon={NAV_ITEMS.find((n) => n.id === activeTab)?.icon || Boxes}
