@@ -1,6 +1,6 @@
 // src/components/Inventory/ReceiveStock.jsx
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Trash2, PackagePlus } from 'lucide-react';
+import { Plus, Trash2, PackagePlus, ClipboardList, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import { itemTypeLabel } from './inventoryLabels';
@@ -15,17 +15,31 @@ const emptyLine = () => ({
     expiryDate: '',
 });
 
-export default function ReceiveStock({ onSuccess }) {
+const linesFromPurchaseOrder = (po) =>
+    (po.items || [])
+        .filter((i) => Number(i.quantityOrdered) - Number(i.quantityReceived || 0) > 0)
+        .map((i) => ({
+            key: Math.random().toString(36).slice(2),
+            itemId: i.inventoryItem?._id || i.inventoryItem,
+            quantity: String(Number(i.quantityOrdered) - Number(i.quantityReceived || 0)),
+            costPerUnit: String(i.costPerUnit),
+            expiryDate: '',
+        }));
+
+// purchaseOrder: optional, full populated PO object — locks supplier/location/items
+// to that order and tags the receiving so the backend auto-updates the PO's
+// received quantities and status.
+export default function ReceiveStock({ purchaseOrder = null, onExitOrderMode, onSuccess }) {
     const [loading, setLoading] = useState(true);
     const [items, setItems] = useState([]);
     const [locations, setLocations] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
 
-    const [locationId, setLocationId] = useState('');
-    const [supplierId, setSupplierId] = useState('');
+    const [locationId, setLocationId] = useState(purchaseOrder?.location?._id || '');
+    const [supplierId, setSupplierId] = useState(purchaseOrder?.supplier?._id || '');
     const [supplierNameFallback, setSupplierNameFallback] = useState('');
     const [note, setNote] = useState('');
-    const [lines, setLines] = useState([emptyLine()]);
+    const [lines, setLines] = useState(purchaseOrder ? linesFromPurchaseOrder(purchaseOrder) : [emptyLine()]);
     const [submitting, setSubmitting] = useState(false);
 
     const load = useCallback(async () => {
@@ -40,18 +54,30 @@ export default function ReceiveStock({ onSuccess }) {
             const locs = (locationsRes.data || []).filter((l) => l.isActive !== false);
             setLocations(locs);
             setSuppliers((suppliersRes.data || []).filter((s) => s.isActive));
-            const store = locs.find((l) => l.code === 'STORE');
-            setLocationId((store || locs[0])?._id || '');
+            if (!purchaseOrder) {
+                const store = locs.find((l) => l.code === 'STORE');
+                setLocationId((store || locs[0])?._id || '');
+            }
         } catch (err) {
             console.error('Failed to load receive-stock form data', err);
             toast.error('Could not load items and locations');
         }
         setLoading(false);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
         load();
     }, [load]);
+
+    // Re-sync the form whenever the target purchase order changes.
+    useEffect(() => {
+        if (purchaseOrder) {
+            setLocationId(purchaseOrder.location?._id || '');
+            setSupplierId(purchaseOrder.supplier?._id || '');
+            setLines(linesFromPurchaseOrder(purchaseOrder));
+        }
+    }, [purchaseOrder]);
 
     const itemsById = useMemo(() => new Map(items.map((i) => [i._id, i])), [items]);
 
@@ -71,10 +97,10 @@ export default function ReceiveStock({ onSuccess }) {
     const removeLine = (key) => setLines((prev) => (prev.length > 1 ? prev.filter((l) => l.key !== key) : prev));
 
     const resetForm = () => {
-        setSupplierId('');
+        setSupplierId(purchaseOrder?.supplier?._id || '');
         setSupplierNameFallback('');
         setNote('');
-        setLines([emptyLine()]);
+        setLines(purchaseOrder ? linesFromPurchaseOrder(purchaseOrder) : [emptyLine()]);
     };
 
     const handleSubmit = async (e) => {
@@ -97,12 +123,13 @@ export default function ReceiveStock({ onSuccess }) {
             }
         }
 
-        const usingOther = supplierId === OTHER_SUPPLIER;
+        const usingOther = !purchaseOrder && supplierId === OTHER_SUPPLIER;
         const selectedSupplier = suppliers.find((s) => s._id === supplierId);
 
         const payload = {
             ...(!usingOther && supplierId ? { supplier: supplierId } : {}),
-            supplierName: usingOther ? supplierNameFallback.trim() : (selectedSupplier?.name || ''),
+            ...(purchaseOrder ? { purchaseOrder: purchaseOrder._id } : {}),
+            supplierName: usingOther ? supplierNameFallback.trim() : (selectedSupplier?.name || purchaseOrder?.supplier?.name || ''),
             location: locationId,
             note: note.trim(),
             items: validLines.map((l) => {
@@ -124,6 +151,7 @@ export default function ReceiveStock({ onSuccess }) {
             resetForm();
             load();
             onSuccess?.();
+            if (purchaseOrder) onExitOrderMode?.();
         } catch (err) {
             console.error('Failed to record receiving', err);
             toast.error(err.response?.data?.message || 'Could not record this delivery');
@@ -137,10 +165,28 @@ export default function ReceiveStock({ onSuccess }) {
 
     return (
         <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6">
-            <div className="flex items-center gap-2">
-                <PackagePlus size={18} className="text-orange-500" />
-                <h3 className="font-black text-gray-800">Receive Stock</h3>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <PackagePlus size={18} className="text-orange-500" />
+                    <h3 className="font-black text-gray-800">Receive Stock</h3>
+                </div>
+                {purchaseOrder && (
+                    <button
+                        type="button"
+                        onClick={onExitOrderMode}
+                        className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-gray-600"
+                    >
+                        <X size={13} /> Receive manually instead
+                    </button>
+                )}
             </div>
+
+            {purchaseOrder && (
+                <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold rounded-xl px-3 py-2.5">
+                    <ClipboardList size={14} />
+                    Receiving against order <span className="font-black">{purchaseOrder.poNumber}</span> — supplier and items are locked to match this order.
+                </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -150,7 +196,8 @@ export default function ReceiveStock({ onSuccess }) {
                     <select
                         value={locationId}
                         onChange={(e) => setLocationId(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-400"
+                        disabled={Boolean(purchaseOrder)}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-400 disabled:opacity-60"
                     >
                         {locations.map((l) => (
                             <option key={l._id} value={l._id}>{l.name}</option>
@@ -161,24 +208,32 @@ export default function ReceiveStock({ onSuccess }) {
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">
                         Supplier
                     </label>
-                    <select
-                        value={supplierId}
-                        onChange={(e) => setSupplierId(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-400"
-                    >
-                        <option value="">Not specified</option>
-                        {suppliers.map((s) => (
-                            <option key={s._id} value={s._id}>{s.name}</option>
-                        ))}
-                        <option value={OTHER_SUPPLIER}>Other / not listed…</option>
-                    </select>
-                    {supplierId === OTHER_SUPPLIER && (
-                        <input
-                            value={supplierNameFallback}
-                            onChange={(e) => setSupplierNameFallback(e.target.value)}
-                            placeholder="Supplier name"
-                            className="w-full mt-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-400"
-                        />
+                    {purchaseOrder ? (
+                        <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-600 font-semibold">
+                            {purchaseOrder.supplier?.name}
+                        </div>
+                    ) : (
+                        <>
+                            <select
+                                value={supplierId}
+                                onChange={(e) => setSupplierId(e.target.value)}
+                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-400"
+                            >
+                                <option value="">Not specified</option>
+                                {suppliers.map((s) => (
+                                    <option key={s._id} value={s._id}>{s.name}</option>
+                                ))}
+                                <option value={OTHER_SUPPLIER}>Other / not listed…</option>
+                            </select>
+                            {supplierId === OTHER_SUPPLIER && (
+                                <input
+                                    value={supplierNameFallback}
+                                    onChange={(e) => setSupplierNameFallback(e.target.value)}
+                                    placeholder="Supplier name"
+                                    className="w-full mt-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-400"
+                                />
+                            )}
+                        </>
                     )}
                 </div>
             </div>
@@ -197,18 +252,24 @@ export default function ReceiveStock({ onSuccess }) {
                         >
                             <div>
                                 <label className="text-[11px] text-gray-500 block mb-1">Item</label>
-                                <select
-                                    value={line.itemId}
-                                    onChange={(e) => handleItemSelect(line.key, e.target.value)}
-                                    className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-orange-400"
-                                >
-                                    <option value="">Select an item…</option>
-                                    {items.map((i) => (
-                                        <option key={i._id} value={i._id}>
-                                            {i.name} ({itemTypeLabel(i.itemType)})
-                                        </option>
-                                    ))}
-                                </select>
+                                {purchaseOrder ? (
+                                    <div className="px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 font-semibold truncate">
+                                        {item?.name || 'Item'}
+                                    </div>
+                                ) : (
+                                    <select
+                                        value={line.itemId}
+                                        onChange={(e) => handleItemSelect(line.key, e.target.value)}
+                                        className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-orange-400"
+                                    >
+                                        <option value="">Select an item…</option>
+                                        {items.map((i) => (
+                                            <option key={i._id} value={i._id}>
+                                                {i.name} ({itemTypeLabel(i.itemType)})
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                             <div>
                                 <label className="text-[11px] text-gray-500 block mb-1">
@@ -256,13 +317,15 @@ export default function ReceiveStock({ onSuccess }) {
                     );
                 })}
 
-                <button
-                    type="button"
-                    onClick={addLine}
-                    className="flex items-center gap-1.5 text-xs font-bold text-orange-500 hover:text-orange-600"
-                >
-                    <Plus size={14} /> Add another item
-                </button>
+                {!purchaseOrder && (
+                    <button
+                        type="button"
+                        onClick={addLine}
+                        className="flex items-center gap-1.5 text-xs font-bold text-orange-500 hover:text-orange-600"
+                    >
+                        <Plus size={14} /> Add another item
+                    </button>
+                )}
             </div>
 
             <div>

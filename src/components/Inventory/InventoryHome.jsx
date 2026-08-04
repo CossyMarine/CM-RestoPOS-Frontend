@@ -9,6 +9,7 @@ import StockPage from './StockPage';
 import ReceiveStock from './ReceiveStock';
 import MoveStock from './MoveStock';
 import SuppliersPage from './SuppliersPage';
+import OrdersPage from './OrdersPage';
 import ComingSoon from './ComingSoon';
 
 const NAV_ITEMS = [
@@ -24,20 +25,21 @@ const NAV_ITEMS = [
 ];
 
 const COMING_SOON_COPY = {
-    orders: { title: 'Orders', description: 'Place and track orders from your suppliers, from draft to delivered.' },
     prepared: { title: 'Prepared Food', description: 'Turn raw ingredients into finished dishes and track what that used up.' },
     waste: { title: 'Record Waste', description: 'Log spoiled, damaged, or expired stock so your numbers always reflect reality.' },
     expiring: { title: 'Expiring Soon', description: 'A complete list of every batch approaching its expiry date, across every location.' },
 };
 
-const BUILT_TABS = ['overview', 'stock', 'receive', 'move', 'suppliers'];
+const BUILT_TABS = ['overview', 'stock', 'receive', 'move', 'suppliers', 'orders'];
 
 export default function InventoryHome() {
     const [activeTab, setActiveTab] = useState('overview');
     const [stockFilters, setStockFilters] = useState(null);
+    const [receiveAgainstOrder, setReceiveAgainstOrder] = useState(null);
 
-    const goTo = (tabId, filters = null) => {
-        if (tabId === 'stock') setStockFilters(filters);
+    const goTo = (tabId, context = null) => {
+        if (tabId === 'stock') setStockFilters(context);
+        if (tabId === 'receive') setReceiveAgainstOrder(context);
         setActiveTab(tabId);
     };
 
@@ -70,9 +72,16 @@ export default function InventoryHome() {
 
             {activeTab === 'overview' && <InventoryOverview onNavigate={goTo} />}
             {activeTab === 'stock' && <StockPage initialFilters={stockFilters} />}
-            {activeTab === 'receive' && <ReceiveStock />}
+            {activeTab === 'receive' && (
+                <ReceiveStock
+                    purchaseOrder={receiveAgainstOrder}
+                    onExitOrderMode={() => setReceiveAgainstOrder(null)}
+                    onSuccess={() => { if (receiveAgainstOrder) goTo('orders'); }}
+                />
+            )}
             {activeTab === 'move' && <MoveStock />}
             {activeTab === 'suppliers' && <SuppliersPage />}
+            {activeTab === 'orders' && <OrdersPage onReceiveAgainst={(po) => goTo('receive', po)} />}
             {!BUILT_TABS.includes(activeTab) && (
                 <ComingSoon
                     icon={NAV_ITEMS.find((n) => n.id === activeTab)?.icon || Boxes}
