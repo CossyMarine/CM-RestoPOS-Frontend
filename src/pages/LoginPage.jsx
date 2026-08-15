@@ -31,9 +31,9 @@ export default function LoginPage({ onAuthed }) {
   };
 
   return (
-    <div className="min-h-screen bg-stone-950 flex font-sans">
-      {/* Left panel — Branding & Value Props */}
-      <div className="hidden lg:flex flex-col justify-between w-1/2 bg-stone-900 border-r border-stone-800 p-12 relative overflow-hidden">
+    <div className="min-h-screen bg-gray-50 flex font-sans">
+      {/* Left panel — Branding & Value Props, matches AdminSidebar */}
+      <div className="hidden lg:flex flex-col justify-between w-1/2 bg-slate-900 p-12 relative overflow-hidden">
         {/* Subtle Ambient Glow */}
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -54,7 +54,7 @@ export default function LoginPage({ onAuthed }) {
             Your restaurant,<br />
             <span className="text-orange-500">fully in control.</span>
           </h2>
-          <p className="text-stone-400 text-base leading-relaxed max-w-md font-medium">
+          <p className="text-slate-400 text-base leading-relaxed max-w-md font-medium">
             Seamlessly coordinate table terminals, staff dispatching, kitchen tickets, and customer bills—all from one lightning-fast terminal.
           </p>
         </div>
@@ -68,26 +68,26 @@ export default function LoginPage({ onAuthed }) {
           ].map((item) => (
             <div
               key={item.label}
-              className="bg-stone-800/60 border border-stone-700/50 backdrop-blur-xs rounded-2xl p-4 transition-all hover:border-stone-600"
+              className="bg-slate-800/60 border border-slate-700/50 backdrop-blur-xs rounded-2xl p-4 transition-all hover:border-slate-600"
             >
               <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center mb-2">
                 <item.icon size={18} />
               </div>
               <div className="text-white text-sm font-bold">{item.label}</div>
-              <div className="text-stone-400 text-[11px] font-medium">{item.sub}</div>
+              <div className="text-slate-400 text-[11px] font-medium">{item.sub}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Right panel — Form Container */}
-      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 relative">
+      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 relative bg-gray-50">
         {/* Mobile Header Branding */}
         <div className="lg:hidden flex items-center gap-2.5 mb-8">
           <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-md">
             <UtensilsCrossed size={18} />
           </div>
-          <span className="font-black text-2xl text-white tracking-tight">
+          <span className="font-black text-2xl text-gray-800 tracking-tight">
             Resto<span className="text-orange-500">POS</span>
           </span>
         </div>
@@ -95,10 +95,10 @@ export default function LoginPage({ onAuthed }) {
         <div className="w-full max-w-sm">
           {/* Section Heading */}
           <div className="mb-6 text-center lg:text-left">
-            <h1 className="text-2xl lg:text-3xl font-black text-white mb-2 tracking-tight">
+            <h1 className="text-2xl lg:text-3xl font-black text-gray-800 mb-2 tracking-tight">
               {tab === "login" ? "Welcome back" : "Create an account"}
             </h1>
-            <p className="text-stone-400 text-sm font-medium">
+            <p className="text-gray-500 text-sm font-medium">
               {tab === "login"
                 ? "Sign in — staff and customer accounts both work here."
                 : "Sign up to start tracking orders and earning rewards."}
@@ -106,9 +106,9 @@ export default function LoginPage({ onAuthed }) {
           </div>
 
           {/* Form Card */}
-          <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-stone-100">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-200">
             {/* Tab Selector */}
-            <div className="flex border-b border-stone-100 bg-stone-50/50 p-1">
+            <div className="flex border-b border-gray-100 bg-gray-50 p-1">
               {[
                 { id: "login", label: "Log In" },
                 { id: "register", label: "Sign Up" },
@@ -117,10 +117,10 @@ export default function LoginPage({ onAuthed }) {
                   key={t.id}
                   type="button"
                   onClick={() => setTab(t.id)}
-                  className={`flex-1 py-3 text-xs font-black uppercase tracking-wider transition-all rounded-2xl ${
+                  className={`flex-1 py-3 text-xs font-black uppercase tracking-wider transition-all rounded-xl ${
                     tab === t.id
-                      ? "bg-white text-orange-600 shadow-xs"
-                      : "text-stone-400 hover:text-stone-600"
+                      ? "bg-white text-orange-500 shadow-xs"
+                      : "text-gray-400 hover:text-gray-600"
                   }`}
                 >
                   {t.label}
@@ -143,11 +143,11 @@ export default function LoginPage({ onAuthed }) {
 
           {/* Footer Direct Nav Actions */}
           <div className="mt-6 text-center space-y-3">
-            <p className="text-xs font-semibold text-stone-400">
+            <p className="text-xs font-semibold text-gray-500">
               Here to order food instead?{" "}
               <Link
                 to="/home"
-                className="text-orange-400 font-bold hover:text-orange-300 transition-colors underline underline-offset-2"
+                className="text-orange-500 font-bold hover:text-orange-600 transition-colors underline underline-offset-2"
               >
                 Go to customer menu
               </Link>
@@ -155,7 +155,7 @@ export default function LoginPage({ onAuthed }) {
 
             <button
               onClick={() => navigate("/home")}
-              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-stone-500 hover:text-stone-300 transition-colors py-1"
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors py-1"
             >
               <ArrowLeft size={14} /> Back to main home
             </button>

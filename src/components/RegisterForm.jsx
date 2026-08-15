@@ -14,7 +14,6 @@ export default function RegisterForm({ onSuccess }) {
   const [contactStatus, setContactStatus] = useState(null); // "checking" | "available" | "taken" | null
   const debounceRef = useRef(null);
 
-  // Live-check contact (email/phone) availability as the person types
   useEffect(() => {
     if (!contact.trim()) return setContactStatus(null);
     clearTimeout(debounceRef.current);
@@ -62,7 +61,7 @@ export default function RegisterForm({ onSuccess }) {
   };
 
   const StatusIcon = ({ status }) => {
-    if (status === "checking") return <Loader2 size={16} className="animate-spin text-stone-400" />;
+    if (status === "checking") return <Loader2 size={16} className="animate-spin text-gray-400" />;
     if (status === "available") return <Check size={16} className="text-green-500" />;
     if (status === "taken") return <X size={16} className="text-red-500" />;
     return null;
@@ -71,27 +70,27 @@ export default function RegisterForm({ onSuccess }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-semibold text-stone-700 mb-1.5">Full name</label>
+        <label className="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">Full name</label>
         <input
           type="text"
           placeholder="Jane Doe"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           required
-          className="w-full border border-stone-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 font-medium placeholder:text-gray-400 focus:outline-none focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100 transition-all"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-stone-700 mb-1.5">Sign up with</label>
-        <div className="flex rounded-xl overflow-hidden border border-stone-300">
+        <label className="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">Sign up with</label>
+        <div className="flex rounded-xl overflow-hidden border border-gray-200">
           {["phone", "email"].map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => { setMethod(m); setContact(""); setContactStatus(null); }}
               className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
-                method === m ? "bg-orange-500 text-white" : "bg-white text-stone-500"
+                method === m ? "bg-orange-500 text-white" : "bg-white text-gray-500"
               }`}
             >
               {m === "phone" ? "Phone" : "Email"}
@@ -101,7 +100,7 @@ export default function RegisterForm({ onSuccess }) {
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-stone-700 mb-1.5">
+        <label className="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">
           {method === "phone" ? "Phone number" : "Email address"}
         </label>
         <div className="relative">
@@ -111,10 +110,10 @@ export default function RegisterForm({ onSuccess }) {
             value={contact}
             onChange={(e) => setContact(e.target.value)}
             required
-            className={`w-full border rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:ring-2 transition-colors ${
+            className={`w-full bg-gray-50 border rounded-xl px-4 py-3 pr-10 text-sm text-gray-800 font-medium placeholder:text-gray-400 focus:outline-none focus:bg-white focus:ring-2 transition-all ${
               contactStatus === "taken"
-                ? "border-red-300 focus:ring-red-200"
-                : "border-stone-300 focus:ring-orange-300"
+                ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+                : "border-gray-200 focus:border-orange-400 focus:ring-orange-100"
             }`}
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -129,7 +128,7 @@ export default function RegisterForm({ onSuccess }) {
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-stone-700 mb-1.5">Password</label>
+        <label className="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">Password</label>
         <input
           type="password"
           placeholder="Create a password"
@@ -137,12 +136,12 @@ export default function RegisterForm({ onSuccess }) {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={6}
-          className="w-full border border-stone-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 font-medium placeholder:text-gray-400 focus:outline-none focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100 transition-all"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-stone-700 mb-1.5">Confirm password</label>
+        <label className="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">Confirm password</label>
         <input
           type="password"
           placeholder="Re-enter your password"
@@ -150,21 +149,21 @@ export default function RegisterForm({ onSuccess }) {
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
           minLength={6}
-          className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-colors ${
+          className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm text-gray-800 font-medium placeholder:text-gray-400 focus:outline-none focus:bg-white focus:ring-2 transition-all ${
             confirmPassword && confirmPassword !== password
-              ? "border-red-300 focus:ring-red-200"
-              : "border-stone-300 focus:ring-orange-300"
+              ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+              : "border-gray-200 focus:border-orange-400 focus:ring-orange-100"
           }`}
         />
         {confirmPassword && confirmPassword !== password && (
-          <p className="text-xs text-red-500 mt-1">Passwords don't match.</p>
+          <p className="text-xs text-red-500 mt-1">Passwords don’t match.</p>
         )}
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors"
+        className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors shadow-sm"
       >
         {loading ? "Creating account…" : "Create Account"}
       </button>

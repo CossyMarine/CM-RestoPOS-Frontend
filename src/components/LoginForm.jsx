@@ -28,11 +28,11 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Email / Phone Field */}
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1.5">
+        <label className="block text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">
           Email or Phone
         </label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
             <Mail size={16} />
           </div>
           <input
@@ -42,7 +42,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }) {
             onChange={(e) => setIdentifier(e.target.value)}
             required
             autoFocus
-            className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-10 pr-4 py-3 text-sm text-stone-900 font-medium placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-800 font-medium placeholder:text-gray-400 focus:outline-none focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100 transition-all"
           />
         </div>
       </div>
@@ -50,7 +50,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }) {
       {/* Password Field */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-xs font-bold uppercase tracking-wider text-stone-600">
+          <label className="block text-xs font-bold uppercase tracking-wide text-gray-500">
             Password
           </label>
           <Link
@@ -61,7 +61,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }) {
           </Link>
         </div>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
             <Lock size={16} />
           </div>
           <input
@@ -70,12 +70,12 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-10 pr-12 py-3 text-sm text-stone-900 font-medium placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-12 py-3 text-sm text-gray-800 font-medium placeholder:text-gray-400 focus:outline-none focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100 transition-all"
           />
           <button
             type="button"
             onClick={() => setShowPass(!showPass)}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors p-1"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
             aria-label={showPass ? "Hide password" : "Show password"}
           >
             {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -87,15 +87,15 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-bold py-3.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 group active:scale-[0.99]"
+        className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 group active:scale-[0.99]"
       >
         <span>{loading ? "Signing in…" : "Sign In"}</span>
         {!loading && <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />}
       </button>
 
       {/* Switch to Register */}
-      <p className="text-center text-xs font-semibold text-stone-500 pt-2">
-        Don't have an account?{" "}
+      <p className="text-center text-xs font-semibold text-gray-500 pt-2">
+        Don’t have an account?{" "}
         <button
           type="button"
           onClick={onSwitchToRegister}
