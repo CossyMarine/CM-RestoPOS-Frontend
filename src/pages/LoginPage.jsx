@@ -1,13 +1,11 @@
 import { useState } from "react";
-import { useNavigate, useLocation, useSearchParams, Link } from "react-router-dom";
-import { 
-  UtensilsCrossed, 
-  ClipboardList, 
-  Receipt, 
-  TrendingUp, 
-  ArrowLeft,
-  Sparkles
-} from "lucide-react";
+import {
+  useNavigate,
+  useLocation,
+  useSearchParams,
+  Link,
+} from "react-router-dom";
+import { UtensilsCrossed, ArrowLeft } from "lucide-react";
 import LoginForm from "../components/LoginForm";
 import RegisterForm from "../components/RegisterForm";
 import { routeForUser } from "../utils/routeForUser";
@@ -16,13 +14,18 @@ export default function LoginPage({ onAuthed }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+
   const [tab, setTab] = useState(
     searchParams.get("tab") === "register" ? "register" : "login"
   );
 
   const handleAuthSuccess = async (user) => {
     await onAuthed?.();
-    const isStaff = user.isAdmin || ["kitchen", "waiter", "accountant"].includes(user.role);
+
+    const isStaff =
+      user.isAdmin ||
+      ["kitchen", "waiter", "accountant"].includes(user.role);
+
     if (isStaff) {
       navigate(routeForUser(user), { replace: true });
     } else {
@@ -31,84 +34,43 @@ export default function LoginPage({ onAuthed }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex font-sans">
-      {/* Left panel — Branding & Value Props, matches AdminSidebar */}
-      <div className="hidden lg:flex flex-col justify-between w-1/2 bg-slate-900 p-12 relative overflow-hidden">
-        {/* Subtle Ambient Glow */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-white flex">
 
-        <div className="flex items-center gap-2.5 relative z-10">
-          <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
-            <UtensilsCrossed size={20} />
-          </div>
-          <span className="font-black text-2xl tracking-tight text-white">
-            Resto<span className="text-orange-500">POS</span>
-          </span>
-        </div>
+      {/* LEFT — Authentication */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-10 lg:px-16">
+        <div className="w-full max-w-md">
 
-        <div className="relative z-10 my-auto py-12">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold uppercase tracking-wider mb-6">
-            <Sparkles size={12} /> Next-Gen Restaurant Management
-          </span>
-          <h2 className="text-4xl lg:text-5xl font-black text-white leading-tight mb-6 tracking-tight">
-            Your restaurant,<br />
-            <span className="text-orange-500">fully in control.</span>
-          </h2>
-          <p className="text-slate-400 text-base leading-relaxed max-w-md font-medium">
-            Seamlessly coordinate table terminals, staff dispatching, kitchen tickets, and customer bills—all from one lightning-fast terminal.
-          </p>
-        </div>
-
-        {/* Feature Cards Grid */}
-        <div className="grid grid-cols-3 gap-4 relative z-10">
-          {[
-            { icon: ClipboardList, label: "Live Orders", sub: "Instant Sync" },
-            { icon: Receipt, label: "E-Receipts", sub: "Fast Billing" },
-            { icon: TrendingUp, label: "Revenue", sub: "Real-time Metrics" },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="bg-slate-800/60 border border-slate-700/50 backdrop-blur-xs rounded-2xl p-4 transition-all hover:border-slate-600"
-            >
-              <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center mb-2">
-                <item.icon size={18} />
-              </div>
-              <div className="text-white text-sm font-bold">{item.label}</div>
-              <div className="text-slate-400 text-[11px] font-medium">{item.sub}</div>
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 mb-12">
+            <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
+              <UtensilsCrossed size={20} />
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Right panel — Form Container */}
-      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 relative bg-gray-50">
-        {/* Mobile Header Branding */}
-        <div className="lg:hidden flex items-center gap-2.5 mb-8">
-          <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-md">
-            <UtensilsCrossed size={18} />
+            <span className="font-black text-2xl tracking-tight text-gray-900">
+              Resto<span className="text-orange-500">POS</span>
+            </span>
           </div>
-          <span className="font-black text-2xl text-gray-800 tracking-tight">
-            Resto<span className="text-orange-500">POS</span>
-          </span>
-        </div>
 
-        <div className="w-full max-w-sm">
-          {/* Section Heading */}
-          <div className="mb-6 text-center lg:text-left">
-            <h1 className="text-2xl lg:text-3xl font-black text-gray-800 mb-2 tracking-tight">
-              {tab === "login" ? "Welcome back" : "Create an account"}
-            </h1>
-            <p className="text-gray-500 text-sm font-medium">
+          {/* Heading */}
+          <div className="mb-7">
+            <h1 className="text-3xl font-black text-gray-900 tracking-tight mb-2">
               {tab === "login"
-                ? "Sign in — staff and customer accounts both work here."
-                : "Sign up to start tracking orders and earning rewards."}
+                ? "Welcome back"
+                : "Create an account"}
+            </h1>
+
+            <p className="text-sm text-gray-500 font-medium">
+              {tab === "login"
+                ? "Sign in to continue to your account."
+                : "Create your account to get started."}
             </p>
           </div>
 
           {/* Form Card */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-200">
-            {/* Tab Selector */}
-            <div className="flex border-b border-gray-100 bg-gray-50 p-1">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+
+            {/* Tabs */}
+            <div className="flex border-b border-gray-100 p-1.5 bg-gray-50">
               {[
                 { id: "login", label: "Log In" },
                 { id: "register", label: "Sign Up" },
@@ -117,9 +79,9 @@ export default function LoginPage({ onAuthed }) {
                   key={t.id}
                   type="button"
                   onClick={() => setTab(t.id)}
-                  className={`flex-1 py-3 text-xs font-black uppercase tracking-wider transition-all rounded-xl ${
+                  className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
                     tab === t.id
-                      ? "bg-white text-orange-500 shadow-xs"
+                      ? "bg-white text-orange-500 shadow-sm"
                       : "text-gray-400 hover:text-gray-600"
                   }`}
                 >
@@ -128,7 +90,7 @@ export default function LoginPage({ onAuthed }) {
               ))}
             </div>
 
-            {/* Active Form Body */}
+            {/* Form */}
             <div className="p-6">
               {tab === "login" ? (
                 <LoginForm
@@ -141,8 +103,9 @@ export default function LoginPage({ onAuthed }) {
             </div>
           </div>
 
-          {/* Footer Direct Nav Actions */}
-          <div className="mt-6 text-center space-y-3">
+          {/* Navigation */}
+          <div className="mt-7 text-center space-y-3">
+
             <p className="text-xs font-semibold text-gray-500">
               Here to order food instead?{" "}
               <Link
@@ -157,11 +120,25 @@ export default function LoginPage({ onAuthed }) {
               onClick={() => navigate("/home")}
               className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors py-1"
             >
-              <ArrowLeft size={14} /> Back to main home
+              <ArrowLeft size={14} />
+              Back to main home
             </button>
+
           </div>
         </div>
       </div>
+
+      {/* RIGHT — Food Image */}
+      <div className="hidden lg:flex lg:w-1/2 bg-white items-center justify-center p-8 xl:p-12">
+        <div className="w-full h-full max-h-[850px] overflow-hidden rounded-[2rem]">
+          <img
+            src="/images/login-food.jpg"
+            alt="Restaurant food"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
+
     </div>
   );
 }
