@@ -128,17 +128,27 @@ export default function LoginPage({ onAuthed }) {
         </div>
       </div>
 
-      {/* RIGHT — Food Image */}
-      <div className="hidden lg:flex lg:w-1/2 bg-white items-center justify-center p-8 xl:p-12">
-        <div className="w-full h-full max-h-[850px] overflow-hidden rounded-[2rem]">
-          <img
-            src="/images/login-food.jpg"
-            alt="Restaurant food"
-            className="w-full h-full object-cover"
-          />
-        </div>
-      </div>
-
+      {/* RIGHT — Food Image, blended into the page */}
+<div className="hidden lg:block lg:w-1/2 relative bg-white">
+  <img
+    src="/images/login-food.jpg"
+    alt=""
+    className="absolute inset-0 w-full h-full object-cover"
+    style={{
+      maskImage: `
+        linear-gradient(to right, transparent 0%, black 20%),
+        linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)
+      `,
+      maskComposite: "intersect",
+      WebkitMaskImage: `
+        linear-gradient(to right, transparent 0%, black 20%),
+        linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)
+      `,
+      WebkitMaskComposite: "source-in",
+      filter: "brightness(1.03) saturate(0.92)",
+    }}
+  />
+</div>
     </div>
   );
 }
