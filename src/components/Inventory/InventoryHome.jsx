@@ -10,6 +10,7 @@ import ReceiveStock from './ReceiveStock';
 import MoveStock from './MoveStock';
 import SuppliersPage from './SuppliersPage';
 import OrdersPage from './OrdersPage';
+import PreparedFoodPage from './PreparedFoodPage';
 import ComingSoon from './ComingSoon';
 
 const NAV_ITEMS = [
@@ -25,12 +26,11 @@ const NAV_ITEMS = [
 ];
 
 const COMING_SOON_COPY = {
-    prepared: { title: 'Prepared Food', description: 'Turn raw ingredients into finished dishes and track what that used up.' },
     waste: { title: 'Record Waste', description: 'Log spoiled, damaged, or expired stock so your numbers always reflect reality.' },
     expiring: { title: 'Expiring Soon', description: 'A complete list of every batch approaching its expiry date, across every location.' },
 };
 
-const BUILT_TABS = ['overview', 'stock', 'receive', 'move', 'suppliers', 'orders'];
+const BUILT_TABS = ['overview', 'stock', 'receive', 'move', 'suppliers', 'orders', 'prepared'];
 
 export default function InventoryHome() {
     const [activeTab, setActiveTab] = useState('overview');
@@ -82,6 +82,7 @@ export default function InventoryHome() {
             {activeTab === 'move' && <MoveStock />}
             {activeTab === 'suppliers' && <SuppliersPage />}
             {activeTab === 'orders' && <OrdersPage onReceiveAgainst={(po) => goTo('receive', po)} />}
+            {activeTab === 'prepared' && <PreparedFoodPage />}
             {!BUILT_TABS.includes(activeTab) && (
                 <ComingSoon
                     icon={NAV_ITEMS.find((n) => n.id === activeTab)?.icon || Boxes}
