@@ -67,7 +67,7 @@ export default function LoginPage({ onAuthed }) {
           </div>
 
           {/* Form Card */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
 
             {/* Tabs */}
             <div className="flex border-b border-gray-100 p-1.5 bg-gray-50">
