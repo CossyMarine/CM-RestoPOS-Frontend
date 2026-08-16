@@ -12,7 +12,7 @@ import SuppliersPage from './SuppliersPage';
 import OrdersPage from './OrdersPage';
 import PreparedFoodPage from './PreparedFoodPage';
 import WastePage from './WastePage';
-import ComingSoon from './ComingSoon';
+import ExpiringSoonPage from './ExpiringSoonPage';
 
 const NAV_ITEMS = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -25,12 +25,6 @@ const NAV_ITEMS = [
     { id: 'waste', label: 'Waste', icon: Trash2 },
     { id: 'expiring', label: 'Expiring Soon', icon: Clock },
 ];
-
-const COMING_SOON_COPY = {
-    expiring: { title: 'Expiring Soon', description: 'A complete list of every batch approaching its expiry date, across every location.' },
-};
-
-const BUILT_TABS = ['overview', 'stock', 'receive', 'move', 'suppliers', 'orders', 'prepared', 'waste'];
 
 export default function InventoryHome() {
     const [activeTab, setActiveTab] = useState('overview');
@@ -84,13 +78,7 @@ export default function InventoryHome() {
             {activeTab === 'orders' && <OrdersPage onReceiveAgainst={(po) => goTo('receive', po)} />}
             {activeTab === 'prepared' && <PreparedFoodPage />}
             {activeTab === 'waste' && <WastePage />}
-            {!BUILT_TABS.includes(activeTab) && (
-                <ComingSoon
-                    icon={NAV_ITEMS.find((n) => n.id === activeTab)?.icon || Boxes}
-                    title={COMING_SOON_COPY[activeTab]?.title}
-                    description={COMING_SOON_COPY[activeTab]?.description}
-                />
-            )}
+            {activeTab === 'expiring' && <ExpiringSoonPage />}
 
             <style>{`
                 .no-scrollbar::-webkit-scrollbar { display: none; }
