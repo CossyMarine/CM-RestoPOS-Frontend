@@ -84,13 +84,22 @@ export default function useComboPayment({ receipt, onClose, onPaid }) {
         }, 150);
     };
 
-    useEffect(() => {
-        if (receipt) {
-            setRemaining(Number((receipt.subtotal - (receipt.amountPaid || 0)).toFixed(2)));
-        }
-        reset();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [receipt?._id]);
+useEffect(() => {
+    if (receipt) {
+        setRemaining(Number((receipt.subtotal - (receipt.amountPaid || 0)).toFixed(2)));
+    }
+    reset();
+
+    // If a prompt was already sent for this bill (e.g. cashier stepped away
+    // to serve someone else), show that instead of a blank payment screen.
+    if (receipt?.mpesaStatus === 'pending' && receipt?.mpesaCheckoutRequestId) {
+        setPaymentMethod('prompt');
+        setMpesaPhone(receipt.mpesaPhone || '');
+        setMpesaState('pending');
+        setMpesaMessage(`Waiting on ${receipt.mpesaPhone || 'the customer'} to enter their M-Pesa PIN.`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [receipt?._id]);
 
     const cashChange = paymentMethod === 'cash' && amountPaid
         ? parseFloat(amountPaid) - remaining
