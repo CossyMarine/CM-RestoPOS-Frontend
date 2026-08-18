@@ -53,7 +53,7 @@ export default function AccountantPage() {
 
     const permissions = user?.permissions || {};
     const enabledModules = MODULE_ORDER.filter((key) => permissions[key]).map((key) => MODULE_MAP[key]);
-    const [activeView, setActiveView] = useState('payments');
+   const [activeView, setActiveView] = useState('paymentConfirmation');
 
     useEffect(() => {
         if (enabledModules.length && !enabledModules.some((m) => m.id === activeView)) {

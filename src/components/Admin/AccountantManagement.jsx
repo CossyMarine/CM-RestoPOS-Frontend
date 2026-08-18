@@ -14,6 +14,7 @@ const PERMISSION_LABELS = {
     waiterManagement: 'Waiter Management',
     kitchen: 'Kitchen',
     payments: 'Payments',
+    paymentConfirmation: 'Payment Confirmation',
 };
 
 export default function AccountantManagement() {
