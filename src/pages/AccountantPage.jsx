@@ -5,7 +5,7 @@ import API from '../api/axios';
 import AdminSidebar from '../components/Admin/AdminSidebar';
 import ShiftBar from '../components/Accountant/ShiftBar';
 import AccountantOrdersLedger from '../components/Accountant/AccountantOrdersLedger';
-import PaymentsView from '../components/Admin/PaymentsView';
+import PaymentConfirmationView from '../components/Admin/PaymentConfirmationView';
 import VoidRequestsView from '../components/Admin/VoidRequestsView';
 import InventoryManagement from '../components/Admin/InventoryManagement';
 import MenuManagement from '../components/Admin/MenuManagement';
@@ -19,7 +19,12 @@ import {
 
 const MODULE_MAP = {
     ordersReceipts: { id: 'orders', label: 'Orders & Receipts', icon: ReceiptText, Component: AccountantOrdersLedger },
-    payments: { id: 'payments', label: 'Payments', icon: CreditCard, Component: PaymentsView },
+    payments: {
+    id: 'payments',
+    label: 'Payment Confirmation',
+    icon: CreditCard,
+    Component: PaymentConfirmationView
+},
     voidRequests: { id: 'voids', label: 'Void Requests', icon: ShieldAlert, Component: VoidRequestsView },
     inventory: { id: 'inventory', label: 'Inventory', icon: Boxes, Component: InventoryManagement },
     manageMenu: { id: 'menu', label: 'Manage Menu', icon: UtensilsCrossed, Component: MenuManagement },
@@ -30,7 +35,8 @@ const MODULE_MAP = {
 };
 
 // Fixed display order regardless of permissions object key order
-const MODULE_ORDER = ['ordersReceipts', 'payments', 'voidRequests', 'inventory', 'manageMenu', 'waiterManagement', 'kitchen', 'users', 'settings'];
+const MODULE_ORDER = [ 'payments',
+    'ordersReceipts', 'voidRequests', 'inventory', 'manageMenu', 'waiterManagement', 'kitchen', 'users', 'settings'];
 
 export default function AccountantPage() {
     const navigate = useNavigate();
@@ -40,7 +46,7 @@ export default function AccountantPage() {
 
     const permissions = user?.permissions || {};
     const enabledModules = MODULE_ORDER.filter((key) => permissions[key]).map((key) => MODULE_MAP[key]);
-    const [activeView, setActiveView] = useState('orders');
+    const [activeView, setActiveView] = useState('payments');
 
     useEffect(() => {
         if (enabledModules.length && !enabledModules.some((m) => m.id === activeView)) {
