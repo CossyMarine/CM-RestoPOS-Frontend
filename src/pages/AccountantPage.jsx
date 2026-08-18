@@ -6,6 +6,7 @@ import AdminSidebar from '../components/Admin/AdminSidebar';
 import ShiftBar from '../components/Accountant/ShiftBar';
 import AccountantOrdersLedger from '../components/Accountant/AccountantOrdersLedger';
 import PaymentConfirmationView from '../components/Admin/PaymentConfirmationView';
+import PaymentsView from '../components/Admin/PaymentsView';
 import VoidRequestsView from '../components/Admin/VoidRequestsView';
 import InventoryManagement from '../components/Admin/InventoryManagement';
 import MenuManagement from '../components/Admin/MenuManagement';
@@ -21,6 +22,12 @@ const MODULE_MAP = {
     ordersReceipts: { id: 'orders', label: 'Orders & Receipts', icon: ReceiptText, Component: AccountantOrdersLedger },
     payments: {
     id: 'payments',
+    label: 'Payments',
+    icon: CreditCard,
+    Component: PaymentsView
+},
+paymentConfirmation: {
+    id: 'paymentConfirmation',
     label: 'Payment Confirmation',
     icon: CreditCard,
     Component: PaymentConfirmationView
@@ -35,8 +42,8 @@ const MODULE_MAP = {
 };
 
 // Fixed display order regardless of permissions object key order
-const MODULE_ORDER = [ 'payments',
-    'ordersReceipts', 'voidRequests', 'inventory', 'manageMenu', 'waiterManagement', 'kitchen', 'users', 'settings'];
+const MODULE_ORDER = [ 'paymentConfirmation', 
+    'ordersReceipts','payments', 'voidRequests', 'inventory', 'manageMenu', 'waiterManagement', 'kitchen', 'users', 'settings'];
 
 export default function AccountantPage() {
     const navigate = useNavigate();
