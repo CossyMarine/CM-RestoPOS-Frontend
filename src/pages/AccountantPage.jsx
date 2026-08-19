@@ -47,7 +47,7 @@ const MODULE_ORDER = [ 'paymentConfirmation',
 
 export default function AccountantPage() {
     const navigate = useNavigate();
-    const { user, logout } = useAuth();
+    const { user, logout, refetch } = useAuth();
     const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
     const [shiftOpen, setShiftOpen] = useState(null);
 
@@ -61,7 +61,20 @@ export default function AccountantPage() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
-
+// An admin can change this account's Module Access (e.g. toggle Payment
+// Confirmation) at any time while the accountant is already logged in.
+// useAuth only fetches /auth/me once on mount, so without this the
+// sidebar stays stale until the accountant manually logs out and back in.
+// Re-sync permissions periodically and whenever the tab regains focus.
+useEffect(() => {
+    const interval = setInterval(() => { refetch(); }, 60000);
+    const onFocus = () => { refetch(); };
+    window.addEventListener('focus', onFocus);
+    return () => {
+        clearInterval(interval);
+        window.removeEventListener('focus', onFocus);
+    };
+}, [refetch]);
     const fetchPendingCount = useCallback(() => {
         if (!permissions.payments) return;
         API.get('/payments/pending/count').then((res) => setPendingPaymentsCount(res.data.count || 0)).catch(() => {});
