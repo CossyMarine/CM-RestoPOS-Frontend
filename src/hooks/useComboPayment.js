@@ -86,7 +86,7 @@ export default function useComboPayment({ receipt, onClose, onPaid }) {
 
 useEffect(() => {
     if (receipt) {
-        setRemaining(Number((receipt.subtotal - (receipt.amountPaid || 0)).toFixed(2)));
+        setRemaining(Number(((receipt.totalDue ?? receipt.subtotal) - (receipt.amountPaid || 0)).toFixed(2)));
     }
     reset();
 
