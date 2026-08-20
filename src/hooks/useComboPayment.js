@@ -27,7 +27,11 @@ export default function useComboPayment({ receipt, onClose, onPaid }) {
     const [comboPromptPhone, setComboPromptPhone] = useState('');
     const [comboApplying, setComboApplying] = useState(false);
     const [comboSendingPrompt, setComboSendingPrompt] = useState(false);
-
+    const [discountKind, setDiscountKind] = useState(null); // 'percent' | 'fixed' | null
+    const [discountValue, setDiscountValue] = useState('');
+    const [discountReason, setDiscountReason] = useState('');
+    const [discountApplying, setDiscountApplying] = useState(false);
+    const [currentDiscount, setCurrentDiscount] = useState(null); // whatever's actually saved on the receipt
     // Load the global "allow printing during payment" setting once.
     useEffect(() => {
         API.get('/settings')
@@ -49,6 +53,9 @@ export default function useComboPayment({ receipt, onClose, onPaid }) {
         setComboCash('');
         setComboTill('');
         setComboPromptPhone('');
+                setDiscountKind(null);
+        setDiscountValue('');
+        setDiscountReason('');
     };
 
     const handleClose = () => { reset(); onClose(); };
@@ -87,6 +94,7 @@ export default function useComboPayment({ receipt, onClose, onPaid }) {
 useEffect(() => {
     if (receipt) {
         setRemaining(Number(((receipt.totalDue ?? receipt.subtotal) - (receipt.amountPaid || 0)).toFixed(2)));
+                setCurrentDiscount(receipt.discount?.kind ? receipt.discount : null);
     }
     reset();
 
@@ -230,7 +238,44 @@ useEffect(() => {
         }
         setProcessing(false);
     };
+    const applyDiscountToBill = async () => {
+        const value = parseFloat(discountValue);
+        if (!discountKind) { toast.error('Choose percent or fixed amount'); return; }
+        if (isNaN(value) || value <= 0) { toast.error('Enter a discount value greater than 0'); return; }
+        if (discountKind === 'percent' && value > 100) { toast.error('Percentage cannot exceed 100'); return; }
+        setDiscountApplying(true);
+        try {
+            const res = await API.patch(`/receipts/${receipt._id}/discount`, {
+                kind: discountKind,
+                value,
+                reason: discountReason.trim() || undefined,
+            });
+            toast.success('Discount applied');
+            setCurrentDiscount(res.data.receipt.discount);
+            setRemaining(Number((res.data.receipt.totalDue - (res.data.receipt.amountPaid || 0)).toFixed(2)));
+            setDiscountKind(null);
+            setDiscountValue('');
+            setDiscountReason('');
+            refreshAfterPayment();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to apply discount');
+        }
+        setDiscountApplying(false);
+    };
 
+    const clearDiscountFromBill = async () => {
+        setDiscountApplying(true);
+        try {
+            const res = await API.patch(`/receipts/${receipt._id}/discount`, { kind: null });
+            toast.success('Discount cleared');
+            setCurrentDiscount(null);
+            setRemaining(Number((res.data.receipt.totalDue - (res.data.receipt.amountPaid || 0)).toFixed(2)));
+            refreshAfterPayment();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to clear discount');
+        }
+        setDiscountApplying(false);
+    };
     const handleComboApply = async () => {
         if (comboEntered <= 0) { toast.error('Enter at least one amount'); return; }
         if (comboAfterApply < -0.01) { toast.error('That adds up to more than the balance due'); return; }
@@ -299,5 +344,10 @@ useEffect(() => {
         handleClose,
         handleCashPay, handleTillPay, handleSendStk, handleRetryMpesa,
         handleRewardPay, handleComboApply, handleComboSendPrompt,
+                discountKind, setDiscountKind,
+        discountValue, setDiscountValue,
+        discountReason, setDiscountReason,
+        discountApplying, currentDiscount,
+        applyDiscountToBill, clearDiscountFromBill,
     };
               }

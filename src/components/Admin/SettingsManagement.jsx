@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, RefreshCw, Landmark, MessageCircle, Phone, Gift, Table2 } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { Save, RefreshCw, Landmark, MessageCircle, Phone, Gift, Table2, Percent } from 'lucide-react';import { toast } from 'react-toastify';
 import API from '../../api/axios';
 
 const EMPTY = {
@@ -16,6 +15,11 @@ const EMPTY = {
         pointValueKes: 1,
         targetPoints: 0,
         description: '',
+    },
+    tax: {
+        enabled: true,
+        ratePercent: 16,
+        inclusive: true,
     },
 };
 
@@ -42,7 +46,13 @@ export default function SettingsManagement() {
                     targetPoints: res.data.reward?.targetPoints ?? 0,
                     description: res.data.reward?.description || '',
                 },
+                tax: {
+                    enabled: res.data.tax?.enabled ?? true,
+                    ratePercent: res.data.tax?.ratePercent ?? 16,
+                    inclusive: res.data.tax?.inclusive ?? true,
+                },
             });
+    
         } catch (err) {
             console.error('Failed to fetch settings', err);
             toast.error('Failed to load settings');
@@ -54,8 +64,8 @@ export default function SettingsManagement() {
         fetchSettings();
     }, []);
 
-    const setReward = (patch) => setForm((f) => ({ ...f, reward: { ...f.reward, ...patch } }));
-
+   const setReward = (patch) => setForm((f) => ({ ...f, reward: { ...f.reward, ...patch } }));
+    const setTax = (patch) => setForm((f) => ({ ...f, tax: { ...f.tax, ...patch } }));
     const handleSave = async () => {
         setSaving(true);
         try {
@@ -241,7 +251,58 @@ export default function SettingsManagement() {
                     </Field>
                 </div>
             </div>
+                {/* Tax / VAT */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-5">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <h3 className="text-base font-black text-gray-800 flex items-center gap-2">
+                            <Percent size={16} className="text-orange-500" />
+                            Tax / VAT
+                        </h3>
+                        <button
+                            onClick={() => setTax({ enabled: !form.tax.enabled })}
+                            className={`relative w-11 h-6 rounded-full transition-colors ${form.tax.enabled ? 'bg-orange-500' : 'bg-gray-300'}`}
+                        >
+                            <span
+                                className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                                    form.tax.enabled ? 'translate-x-5' : 'translate-x-0.5'
+                                }`}
+                            />
+                        </button>
+                    </div>
 
+                    <Field label="Tax Rate (%)">
+                        <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={form.tax.ratePercent}
+                            onChange={(e) => setTax({ ratePercent: parseFloat(e.target.value) || 0 })}
+                            className="input"
+                        />
+                        <p className="text-[11px] text-gray-400 mt-1">e.g. 16 for Kenyan VAT — change this any time the rate changes, no code update needed</p>
+                    </Field>
+
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-semibold text-gray-700">Prices Include Tax</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">
+                                On — menu prices already include tax, it's extracted on the receipt.
+                                Off — tax is added on top of menu prices at checkout.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setTax({ inclusive: !form.tax.inclusive })}
+                            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${form.tax.inclusive ? 'bg-orange-500' : 'bg-gray-300'}`}
+                        >
+                            <span
+                                className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                                    form.tax.inclusive ? 'translate-x-5' : 'translate-x-0.5'
+                                }`}
+                            />
+                        </button>
+                    </div>
+                </div>
             <div className="flex justify-end">
                 <button
                     onClick={handleSave}

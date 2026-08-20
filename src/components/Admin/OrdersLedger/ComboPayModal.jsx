@@ -6,10 +6,12 @@ import { CashPanel, TillPanel, PromptPanel, RewardPanel } from './ComboPay/CashT
 import BothPanel from './ComboPay/BothPanel';
 import PaymentFooter from './ComboPay/PaymentFooter';
 import MpesaPendingPanel from './ComboPay/MpesaPendingPanel';
-
+import useAuth from '../../../hooks/useAuth';
+import DiscountPanel from './ComboPay/DiscountPanel';
 export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const p = useComboPayment({ receipt, onClose, onPaid });
-
+    const { user } = useAuth();
+    const canDiscount = user?.isAdmin || user?.permissions?.applyDiscounts;
     // Only bail out fully once there's neither a modal to show NOR a receipt
     // still queued to print — otherwise printTarget never gets a chance to render.
     if (!receipt && !p.printTarget) return null;
@@ -111,7 +113,17 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
                                 )}
                             </>
                         )}
-
+                        {canDiscount && !receipt.amountPaid && (p.mpesaState === 'idle' || p.mpesaState === 'failed') && (
+                            <DiscountPanel
+                                currentDiscount={p.currentDiscount}
+                                discountKind={p.discountKind} setDiscountKind={p.setDiscountKind}
+                                discountValue={p.discountValue} setDiscountValue={p.setDiscountValue}
+                                discountReason={p.discountReason} setDiscountReason={p.setDiscountReason}
+                                discountApplying={p.discountApplying}
+                                onApply={p.applyDiscountToBill}
+                                onClear={p.clearDiscountFromBill}
+                            />
+                        )}
                         {p.mpesaState === 'pending' && (
                             <MpesaPendingPanel message={p.mpesaMessage} onClose={p.handleClose} />
                         )}
