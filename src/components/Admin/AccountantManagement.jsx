@@ -15,8 +15,8 @@ const PERMISSION_LABELS = {
     kitchen: 'Kitchen',
     payments: 'Payments',
     paymentConfirmation: 'Payment Confirmation',
+    applyDiscounts: 'Apply Discounts',
 };
-
 export default function AccountantManagement() {
     const [accountants, setAccountants] = useState([]);
     const [loading, setLoading] = useState(false);
