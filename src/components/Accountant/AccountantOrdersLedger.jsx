@@ -99,7 +99,7 @@ export default function AccountantOrdersLedger({ shiftOpen }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const balanceDue = (r) => Number((r.subtotal - (r.amountPaid || 0)).toFixed(2));
+    const balanceDue = (r) => Number(((r.totalDue ?? r.subtotal) - (r.amountPaid || 0)).toFixed(2));
 
     const rowHighlight = (status) => {
         if (status === 'paid') return 'bg-emerald-50/40 hover:bg-emerald-50/70';
@@ -179,7 +179,7 @@ export default function AccountantOrdersLedger({ shiftOpen }) {
                 title={viewing?.billId}
                 subtitle={viewing ? `Table ${viewing.tableNumber} · ${viewing.waiterName || 'No waiter'}` : ''}
                 items={(viewing?.items || []).map((i) => ({ name: i.mealName, qty: i.quantity, price: i.unitPrice }))}
-                total={viewing?.subtotal}
+                total={viewing?.totalDue ?? viewing?.subtotal}
                 payment={viewing ? paymentInfo(viewing) : null}
             />
 

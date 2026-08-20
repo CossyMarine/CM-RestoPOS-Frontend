@@ -67,7 +67,7 @@ export default function DashboardOverview() {
         if (!dateFrom && !dateTo) return revenueToday.totalRevenue;
         return combined
             .filter((r) => r.status === 'paid')
-            .reduce((sum, r) => sum + r.subtotal, 0);
+            .reduce((sum, r) => sum + r.amountPaid, 0);
     }, [combined, dateFrom, dateTo, revenueToday]);
 
     const paymentInfo = (r) =>
@@ -210,7 +210,7 @@ export default function DashboardOverview() {
                 title={viewing?.billId}
                 subtitle={viewing ? `Table ${viewing.tableNumber} · ${viewing.waiterName || 'No waiter'}` : ''}
                 items={(viewing?.items || []).map((i) => ({ name: i.mealName, qty: i.quantity, price: i.unitPrice }))}
-                total={viewing?.subtotal}
+               receipt={viewing}
                 payment={viewing ? paymentInfo(viewing) : null}
             />
         </div>
