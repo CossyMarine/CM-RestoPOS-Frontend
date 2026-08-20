@@ -181,8 +181,7 @@ export default function DashboardOverview() {
                                         <td className="p-3 font-bold text-orange-500">{r.billId}</td>
                                         <td className="p-3 font-medium">{r.waiterName || '—'}</td>
                                         <td className="p-3 font-semibold">Table {r.tableNumber}</td>
-                                        <td className="p-3 font-bold text-gray-800">KES {r.subtotal.toLocaleString()}</td>
-                                        <td className="p-3 text-xs text-gray-400">
+<td className="p-3 font-bold text-gray-800">KES {(r.totalDue ?? r.subtotal).toLocaleString()}</td>                                        <td className="p-3 text-xs text-gray-400">
                                             {formatKenyanDateTime(r.createdAt)}
                                         </td>
                                         <td className="p-3">

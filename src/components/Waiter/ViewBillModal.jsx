@@ -49,8 +49,7 @@ export default function ViewBillModal({ bill, onClose }) {
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-stone-200">
             <span className="text-xs font-bold uppercase text-stone-400">Total</span>
-            <span className="text-lg font-black text-stone-900">KSh {bill.subtotal.toLocaleString()}</span>
-          </div>
+            <span className="text-lg font-black text-stone-900">KSh {(bill.totalDue ?? bill.subtotal).toLocaleString()}</span>          </div>
 
           {bill.voidReason && (
             <p className="mt-3 text-[11px] text-red-500 font-semibold">Void reason: {bill.voidReason}</p>

@@ -437,8 +437,7 @@ export default function CustomerPage() {
                   <p className="text-xs text-stone-400">{new Date(o.createdAt).toLocaleString()}</p>
                 </div>
                 <div className="text-right space-y-1">
-                  <p className="font-bold text-stone-900">KSh {Number(o.subtotal).toLocaleString()}</p>
-                  <span className={`text-xs px-3 py-1 rounded-full font-semibold ${STATUS_STYLE[o.status] || "bg-stone-100 text-stone-600"}`}>
+                  <p className="font-bold text-stone-900">KSh {Number(o.billTotalDue ?? o.subtotal).toLocaleString()}</p>                  <span className={`text-xs px-3 py-1 rounded-full font-semibold ${STATUS_STYLE[o.status] || "bg-stone-100 text-stone-600"}`}>
                     {STATUS_LABEL[o.status] || o.status}
                   </span>
                   {o.status === "pending" && (

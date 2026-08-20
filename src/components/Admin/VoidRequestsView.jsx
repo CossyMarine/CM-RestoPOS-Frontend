@@ -120,13 +120,13 @@ export default function VoidRequestsView() {
                 </div>
             </div>
 
-            <ViewItemsModal
+                      <ViewItemsModal
                 open={!!viewing}
                 onClose={() => setViewing(null)}
                 title={viewing?.billId}
                 subtitle={viewing ? `Table ${viewing.tableNumber}` : ''}
                 items={(viewing?.items || []).map((i) => ({ name: i.mealName, qty: i.quantity, price: i.unitPrice }))}
-                total={viewing?.subtotal}
+                receipt={viewing}
             />
 
             <ConfirmModal

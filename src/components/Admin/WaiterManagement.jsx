@@ -218,7 +218,7 @@ export default function WaiterManagement() {
                   selectedWaiter.recentBills.map((b) => (
                     <div key={b._id} className="p-3 flex justify-between text-sm">
                       <span>{b.billId} · Table {b.tableNumber}</span>
-                      <span className="font-semibold">{fmt(b.subtotal)}</span>
+                      <span className="font-semibold">{fmt(b.totalDue ?? b.subtotal)}</span>
                     </div>
                   ))
                 )}

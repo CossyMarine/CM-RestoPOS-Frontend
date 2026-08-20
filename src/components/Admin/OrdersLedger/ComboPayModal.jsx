@@ -48,8 +48,7 @@ export default function ComboPayModal({ receipt, onClose, onPaid }) {
                         </div>
                         {receipt.amountPaid > 0 && (
                             <p className="text-xs text-gray-400 mb-6">
-                                Balance due · KES {receipt.amountPaid.toLocaleString()} already paid of KES {receipt.subtotal.toLocaleString()}
-                            </p>
+                                Balance due · KES {receipt.amountPaid.toLocaleString()} already paid of KES {(receipt.totalDue ?? receipt.subtotal).toLocaleString()}                            </p>
                         )}
                         {!receipt.amountPaid && <div className="mb-6" />}
 

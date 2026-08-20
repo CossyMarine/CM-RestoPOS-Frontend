@@ -75,7 +75,7 @@ export default function BillHistoryPanel({
                     {showWaiterColumn && (
                       <td className="p-4 text-stone-600 font-semibold">{bill.waiterName || "—"}</td>
                     )}
-                    <td className="p-4 text-stone-900 font-black">KSh {bill.subtotal.toLocaleString()}</td>
+                    <td className="p-4 text-stone-900 font-black">KSh {(bill.totalDue ?? bill.subtotal).toLocaleString()}</td>
                     <td className="p-4">
                       <span
                         className={`px-2.5 py-1 rounded-full font-bold text-[10px] uppercase ${

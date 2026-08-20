@@ -355,8 +355,9 @@ export default function WalletPage() {
             <p className="p-4 text-sm text-stone-400">You're all settled up — nothing owing.</p>
           )}
           {wallet?.bills.map((b) => {
-            const balanceDue = Number((b.subtotal - (b.amountPaid || 0)).toFixed(2));
-            const hasPending = (b.pendingManualPayments?.length || 0) > 0;
+            const owed = b.totalDue ?? b.subtotal;
+const balanceDue = Number((owed - (b.amountPaid || 0)).toFixed(2));            
+const hasPending = (b.pendingManualPayments?.length || 0) > 0;
             return (
               <div key={b._id} className="p-4 flex items-center justify-between text-sm">
                 <div>
@@ -376,6 +377,7 @@ export default function WalletPage() {
                       status: b.status,
                       items: b.items.map((i) => ({ ...i, imageUrl: null })),
                       subtotal: b.subtotal,
+                      totalDue: b.totalDue ?? b.subtotal,
                       amountPaid: b.amountPaid || 0,
                       balanceDue,
                       hasPendingManualPayment: hasPending,

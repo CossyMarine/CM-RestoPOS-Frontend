@@ -220,8 +220,7 @@ export default function OrdersPage() {
                 </div>
               </div>
               <div className="text-right space-y-1 shrink-0">
-                <p className="font-bold text-stone-900">KSh {Number(o.subtotal).toLocaleString()}</p>
-                <span className={`text-xs px-3 py-1 rounded-full font-semibold ${STATUS_STYLE[o.status] || "bg-stone-100 text-stone-600"}`}>
+                <p className="font-bold text-stone-900">KSh {Number(o.billTotalDue ?? o.subtotal).toLocaleString()}</p>                <span className={`text-xs px-3 py-1 rounded-full font-semibold ${STATUS_STYLE[o.status] || "bg-stone-100 text-stone-600"}`}>
                   {STATUS_LABEL[o.status] || o.status}
                 </span>
                 {o.status === "pending" && (
@@ -297,7 +296,7 @@ export default function OrdersPage() {
               ))}
               <div className="border-t border-stone-100 pt-3 flex justify-between font-black text-stone-900">
                 <span>Total</span>
-                <span>KSh {Number(viewing.subtotal).toLocaleString()}</span>
+                <span>KSh {Number(viewing.billTotalDue ?? viewing.subtotal).toLocaleString()}</span>
               </div>
               <button
                 onClick={() => { setViewing(null); handleReorder(viewing); }}

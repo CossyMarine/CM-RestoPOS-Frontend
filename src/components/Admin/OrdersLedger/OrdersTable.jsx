@@ -121,7 +121,7 @@ export default function OrdersTable({
                                     </td>
 
                                     <td className="p-3 font-bold text-gray-800">
-                                        KES {r.subtotal.toLocaleString()}
+                                        KES {(r.totalDue ?? r.subtotal).toLocaleString()}
                                     </td>
 
                                     <td className="p-3 font-semibold text-gray-600">

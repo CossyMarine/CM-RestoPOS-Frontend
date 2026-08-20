@@ -156,7 +156,7 @@ export default function OrdersLedger() {
         setClaimBusy(false);
     };
 
-    const balanceDue = (r) => Number((r.subtotal - (r.amountPaid || 0)).toFixed(2));
+    const balanceDue = (r) => Number(((r.totalDue ?? r.subtotal) - (r.amountPaid || 0)).toFixed(2));
 
     const rowHighlight = (status) => {
         if (status === 'paid') return 'bg-emerald-50/40 hover:bg-emerald-50/70';
@@ -244,13 +244,13 @@ export default function OrdersLedger() {
                 onClaim={handleClaimOnlineOrder}
             />
 
-            <ViewItemsModal
+                       <ViewItemsModal
                 open={!!viewing}
                 onClose={() => setViewing(null)}
                 title={viewing?.billId}
                 subtitle={viewing ? `Table ${viewing.tableNumber} · ${viewing.waiterName || 'No waiter'}` : ''}
                 items={(viewing?.items || []).map((i) => ({ name: i.mealName, qty: i.quantity, price: i.unitPrice }))}
-                total={viewing?.subtotal}
+                receipt={viewing}
                 payment={viewing ? paymentInfo(viewing) : null}
             />
 

@@ -43,8 +43,7 @@ export default function AddItemsModal({ bill, menu, onCancel, onSubmit, busy }) 
               <PackagePlus size={18} className="text-orange-500" /> Add Items — {bill.billId}
             </h3>
             <p className="text-xs text-stone-400 mt-0.5">
-              Table {bill.tableNumber} • Current total KSh {bill.subtotal.toLocaleString()}
-            </p>
+              Table {bill.tableNumber} • Current total KSh {(bill.totalDue ?? bill.subtotal).toLocaleString()}            </p>
           </div>
           <button onClick={onCancel} className="text-stone-400 hover:text-stone-700">
             <X size={18} />
