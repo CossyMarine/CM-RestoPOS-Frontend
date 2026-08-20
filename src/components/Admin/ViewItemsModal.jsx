@@ -1,7 +1,24 @@
-import { X } from 'lucide-react';
+import { X, Tag, Percent } from 'lucide-react';
 
-export default function ViewItemsModal({ open, onClose, title, subtitle, items = [], total, payment }) {
+// `receipt` (new, preferred): pass the full receipt object and this renders
+// the complete subtotal → discount → tax → total breakdown automatically.
+// `total` (legacy): still supported as a plain fallback number for any
+// caller that hasn't been updated yet — shows a flat "Total" row only.
+export default function ViewItemsModal({ open, onClose, title, subtitle, items = [], total, receipt, payment }) {
     if (!open) return null;
+
+    const subtotal = receipt?.subtotal ?? total;
+    const discountAmount = receipt?.discount?.amount || 0;
+    const discountLabel = receipt?.discount?.kind === 'percent'
+        ? `Discount (${receipt.discount.value}%${receipt.discount.reason ? ` · ${receipt.discount.reason}` : ''})`
+        : receipt?.discount?.kind === 'fixed'
+            ? `Discount${receipt.discount.reason ? ` (${receipt.discount.reason})` : ''}`
+            : null;
+    const taxAmount = receipt?.tax?.amount || 0;
+    const taxLabel = receipt?.tax?.ratePercent
+        ? `Tax (${receipt.tax.ratePercent}%${receipt.tax.inclusive ? ', incl.' : ''})`
+        : 'Tax';
+    const grandTotal = receipt?.totalDue ?? total ?? subtotal;
 
     return (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
@@ -31,10 +48,37 @@ export default function ViewItemsModal({ open, onClose, title, subtitle, items =
                     )}
                 </div>
 
-                {total !== undefined && (
-                    <div className="border-t border-gray-800 mt-4 pt-3 flex justify-between font-black text-white">
-                        <span>Total</span>
-                        <span className="text-orange-500">KES {Number(total).toLocaleString()}</span>
+                {subtotal !== undefined && (
+                    <div className="border-t border-gray-800 mt-4 pt-3 space-y-1.5">
+                        {(discountAmount > 0 || taxAmount > 0) && (
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-500">Subtotal</span>
+                                <span className="font-semibold text-gray-300">KES {Number(subtotal).toLocaleString()}</span>
+                            </div>
+                        )}
+
+                        {discountAmount > 0 && (
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-500 flex items-center gap-1">
+                                    <Tag size={12} /> {discountLabel}
+                                </span>
+                                <span className="font-semibold text-orange-400">−KES {Number(discountAmount).toLocaleString()}</span>
+                            </div>
+                        )}
+
+                        {taxAmount > 0 && (
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-500 flex items-center gap-1">
+                                    <Percent size={12} /> {taxLabel}
+                                </span>
+                                <span className="font-semibold text-gray-300">KES {Number(taxAmount).toLocaleString()}</span>
+                            </div>
+                        )}
+
+                        <div className="flex justify-between font-black text-white pt-1.5 border-t border-gray-800/70">
+                            <span>Total</span>
+                            <span className="text-orange-500">KES {Number(grandTotal).toLocaleString()}</span>
+                        </div>
                     </div>
                 )}
 
