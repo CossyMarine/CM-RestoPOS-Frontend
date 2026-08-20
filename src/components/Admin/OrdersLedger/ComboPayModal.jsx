@@ -6,7 +6,7 @@ import { CashPanel, TillPanel, PromptPanel, RewardPanel } from './ComboPay/CashT
 import BothPanel from './ComboPay/BothPanel';
 import PaymentFooter from './ComboPay/PaymentFooter';
 import MpesaPendingPanel from './ComboPay/MpesaPendingPanel';
-import useAuth from '../../../hooks/useAuth';
+import { useAuth } from '../../../hooks/useAuth';
 import DiscountPanel from './ComboPay/DiscountPanel';
 export default function ComboPayModal({ receipt, onClose, onPaid }) {
     const p = useComboPayment({ receipt, onClose, onPaid });
