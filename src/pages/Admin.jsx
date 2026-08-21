@@ -17,6 +17,7 @@ import KitchenManagement from '../components/Admin/KitchenManagement';
 import InventoryHome from '../components/Inventory/InventoryHome';
 import AccountantManagement from '../components/Admin/AccountantManagement';
 import BatchIntegrityTestDashboard from '../components/Admin/BatchIntegrityTestDashboard';
+import ReportsHome from '../components/Admin/Reports/ReportsHome';
 
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
@@ -33,6 +34,7 @@ const VIEWS = {
     accountants: AccountantManagement,
     batchIntegrityTest: BatchIntegrityTestDashboard,
     settings: SettingsManagement,
+        reports: ReportsHome,
 };
 
 export default function Admin() {

@@ -1,7 +1,7 @@
 import {
     LayoutDashboard, UtensilsCrossed, ChefHat, ReceiptText, CreditCard,
     ShieldAlert, Users, UserCog, Settings, LogOut, Boxes, FlaskConical,
-    UtensilsCrossed as Logo,
+    UtensilsCrossed as Logo,FileBarChart,
 } from 'lucide-react';
 
 export const ADMIN_NAV_ITEMS = [
@@ -11,8 +11,9 @@ export const ADMIN_NAV_ITEMS = [
     { id: 'inventory', label: 'Inventory', icon: Boxes },
     { id: 'batchIntegrityTest', label: 'Batch Integrity DEV TEST', icon: FlaskConical },
     { id: 'orders', label: 'Orders & Receipts', icon: ReceiptText },
-    { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'voids', label: 'Void Requests', icon: ShieldAlert },
+{ id: 'payments', label: 'Payments', icon: CreditCard },
+    { id: 'reports', label: 'Reports', icon: FileBarChart },   
+     { id: 'voids', label: 'Void Requests', icon: ShieldAlert },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'waiters', label: 'Waiter Management', icon: UserCog },
     { id: 'accountants', label: 'Accountants', icon: UserCog },
