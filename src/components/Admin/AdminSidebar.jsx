@@ -1,7 +1,7 @@
 import {
     LayoutDashboard, UtensilsCrossed, ChefHat, ReceiptText, CreditCard,
     ShieldAlert, Users, UserCog, Settings, LogOut, Boxes, FlaskConical,
-    UtensilsCrossed as Logo,FileBarChart,
+    FileBarChart, UtensilsCrossed as Logo,
 } from 'lucide-react';
 
 export const ADMIN_NAV_ITEMS = [
@@ -11,9 +11,9 @@ export const ADMIN_NAV_ITEMS = [
     { id: 'inventory', label: 'Inventory', icon: Boxes },
     { id: 'batchIntegrityTest', label: 'Batch Integrity DEV TEST', icon: FlaskConical },
     { id: 'orders', label: 'Orders & Receipts', icon: ReceiptText },
-{ id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'reports', label: 'Reports', icon: FileBarChart },   
-     { id: 'voids', label: 'Void Requests', icon: ShieldAlert },
+    { id: 'payments', label: 'Payments', icon: CreditCard },
+    { id: 'reports', label: 'Reports', icon: FileBarChart },
+    { id: 'voids', label: 'Void Requests', icon: ShieldAlert },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'waiters', label: 'Waiter Management', icon: UserCog },
     { id: 'accountants', label: 'Accountants', icon: UserCog },
@@ -25,15 +25,15 @@ export default function AdminSidebar({
     navItems = ADMIN_NAV_ITEMS, title = 'Management Console', extra = null,
 }) {
     return (
-        <aside className="w-64 bg-slate-900 h-screen sticky top-0 flex flex-col justify-between shrink-0 shadow-lg z-20">
+        <aside className="w-64 bg-white h-screen sticky top-0 flex flex-col justify-between shrink-0 shadow-sm border-r border-gray-100 z-20">
             <div className="p-6">
                 <div className="flex items-center gap-2">
                     <Logo size={20} className="text-orange-500" />
-                    <span className="font-black text-lg text-white">
+                    <span className="font-black text-lg text-gray-800">
                         Resto<span className="text-orange-500">POS</span>
                     </span>
                 </div>
-                <p className="text-[11px] uppercase tracking-wider font-bold text-slate-500 mt-0.5">
+                <p className="text-[11px] uppercase tracking-wider font-bold text-gray-400 mt-0.5">
                     {title}
                 </p>
 
@@ -49,8 +49,8 @@ export default function AdminSidebar({
                                 onClick={() => onNavigate(id)}
                                 className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-3 transition-all ${
                                     active
-                                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
-                                        : 'text-slate-400 hover:bg-slate-800/60 hover:text-orange-400'
+                                        ? 'bg-orange-500 text-white shadow-sm'
+                                        : 'text-gray-500 hover:bg-gray-50 hover:text-orange-500'
                                 }`}
                             >
                                 <Icon size={16} />
@@ -66,13 +66,13 @@ export default function AdminSidebar({
                 </nav>
             </div>
 
-            <div className="p-6 border-t border-slate-800 bg-slate-950/30">
-                <p className="text-xs text-slate-500 font-medium truncate mb-3">
+            <div className="p-6 border-t border-gray-100">
+                <p className="text-xs text-gray-400 font-medium truncate mb-3">
                     {user?.fullName || 'Authorized User'}
                 </p>
                 <button
                     onClick={onLogout}
-                    className="w-full flex items-center gap-2 text-slate-400 hover:text-red-400 text-sm font-semibold transition-colors"
+                    className="w-full flex items-center gap-2 text-gray-400 hover:text-red-500 text-sm font-semibold transition-colors"
                 >
                     <LogOut size={16} />
                     Sign Out
