@@ -5,7 +5,7 @@
       "destination": "https://cm-restopos-backend.onrender.com/api/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/|sw\\.js|manifest\\.webmanifest|.*\\.webmanifest|.*\\.ico|.*\\.png|.*\\.svg).*)",
       "destination": "/index.html"
     }
   ]
