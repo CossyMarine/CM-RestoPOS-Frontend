@@ -2,7 +2,8 @@
 // StockPage.jsx — top of file
 import API from '../../api/axios';
 import StockDetailsModal from './StockDetailsModal';
-import { Search, Eye, PackageSearch } from 'lucide-react';
+import ItemFormModal from './ItemFormModal';
+import { Search, Eye, PackageSearch, Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { formatQty, formatShortDate, getStockStatus, buildNearestExpiryMap, STATUS_FILTER_OPTIONS } from './inventoryLabels';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -18,7 +19,7 @@ export default function StockPage({ initialFilters }) {
     const [statusFilter, setStatusFilter] = useState(initialFilters?.status || 'all');
 
     const [selected, setSelected] = useState(null); // stock row opened in details modal
-
+    const [addingItem, setAddingItem] = useState(false);
     const load = async () => {
         setLoading(true);
         try {
@@ -110,6 +111,12 @@ export default function StockPage({ initialFilters }) {
                         <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                 </select>
+                <button
+                    onClick={() => setAddingItem(true)}
+                    className="ml-auto flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+                >
+                    <Plus size={15} /> Add Item
+                </button>
             </div>
 
             <div className="overflow-x-auto">
@@ -176,6 +183,12 @@ export default function StockPage({ initialFilters }) {
                     itemId={selected.item._id}
                     locationId={selected.location._id}
                     onClose={() => setSelected(null)}
+                />
+            )}
+            {addingItem && (
+                <ItemFormModal
+                    onClose={() => setAddingItem(false)}
+                    onSaved={() => { setAddingItem(false); load(); }}
                 />
             )}
 
