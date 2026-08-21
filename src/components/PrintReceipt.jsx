@@ -33,8 +33,26 @@ export default function PrintReceipt({ receipt }) {
                 </p>
             ))}
 
+                        <p>-------------------------------------</p>
+            <p>Subtotal                 KES {Number(receipt.subtotal).toLocaleString()}</p>
+
+            {receipt.discount?.amount > 0 && (
+                <p>
+                    {(receipt.discount.kind === 'percent' ? `Discount (${receipt.discount.value}%)` : 'Discount').padEnd(25)}
+                    -KES {Number(receipt.discount.amount).toLocaleString()}
+                </p>
+            )}
+
+            {receipt.tax?.amount > 0 && (
+                <p>
+                    {`VAT (${receipt.tax.ratePercent}%${receipt.tax.inclusive ? ', incl.' : ''})`.padEnd(25)}
+                    KES {Number(receipt.tax.amount).toLocaleString()}
+                </p>
+            )}
+
             <p>-------------------------------------</p>
-            <p>Subtotal                 KES {receipt.subtotal}</p>
+            <p>TOTAL                    KES {Number(receipt.totalDue ?? receipt.subtotal).toLocaleString()}</p>
+
             {receipt.amountPaid && (
                 <>
                     <p>Amount Paid              KES {receipt.amountPaid}</p>
