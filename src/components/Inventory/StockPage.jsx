@@ -60,6 +60,7 @@ const handleDelete = async (r) => {
     const rows = useMemo(() => {
         return balances
             .filter((b) => b.item) // guard against orphaned stock rows
+            .filter((b) => b.item.isActive !== false)
             .map((b) => {
                 const key = `${b.item._id}_${b.location._id}`;
                 const nearestExpiryDate = nearestExpiryMap.get(key) || null;
