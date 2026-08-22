@@ -18,7 +18,7 @@ const NAV_ITEMS = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'stock', label: 'Stock', icon: Boxes },
     { id: 'receive', label: 'Receive Stock', icon: PackagePlus },
-    { id: 'move', label: 'Move Stock', icon: ArrowLeftRight },
+    
     { id: 'suppliers', label: 'Suppliers', icon: Truck },
     { id: 'orders', label: 'Orders', icon: ClipboardList },
     { id: 'prepared', label: 'Prepared Food', icon: ChefHat },
