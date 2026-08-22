@@ -127,7 +127,12 @@ export default function WaiterDashboard() {
         setOnlineOrders((prev) => prev.map((o) => (o._id === order._id ? { ...o, ...order } : o)));
       }
     });
-
+    // A specific dish just got marked ready in the kitchen — only alert
+    // the waiter who actually owns this table, not everyone on shift.
+    socket.on("order:itemReady", (payload) => {
+      if (payload.waiterName !== waiterName) return;
+      toast.success(`${payload.mealName} (x${payload.quantity}) ready — Table ${payload.tableNumber}`);
+    });
     // Keep Bill Records status in sync the moment a void request is approved elsewhere.
     socket.on("voidRequest:approved", () => {
       fetchHistory(historyPage, historySearch);
