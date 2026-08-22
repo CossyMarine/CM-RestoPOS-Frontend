@@ -3,7 +3,7 @@
 import API from '../../api/axios';
 import StockDetailsModal from './StockDetailsModal';
 import ItemFormModal from './ItemFormModal';
-import { Search, Eye, PackageSearch, Plus } from 'lucide-react';
+import { Search, Eye,Trash2, PackageSearch, Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { formatQty, formatShortDate, getStockStatus, buildNearestExpiryMap, STATUS_FILTER_OPTIONS } from './inventoryLabels';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -37,7 +37,22 @@ export default function StockPage({ initialFilters }) {
         }
         setLoading(false);
     };
+const handleDelete = async (r) => {
+    const confirmed = window.confirm(
+        `Remove "${r.item.name}"? This affects it everywhere, not just ${r.location.name}. ` +
+        `If it has any stock history, it'll be deactivated instead of deleted — otherwise it's removed completely.`
+    );
+    if (!confirmed) return;
 
+    try {
+        const res = await API.delete(`/inventory/items/${r.item._id}`);
+        toast.success(res.data.message || 'Item removed');
+        load();
+    } catch (err) {
+        console.error('Failed to delete item', err);
+        toast.error(err.response?.data?.message || 'Could not remove this item');
+    }
+};
     useEffect(() => {
         load();
     }, []);
@@ -169,6 +184,12 @@ export default function StockPage({ initialFilters }) {
                                             className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-500 hover:text-orange-600"
                                         >
                                             <Eye size={14} /> View
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(r)}
+                                            className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-red-500 ml-3"
+                                        >
+                                            <Trash2 size={14} /> Delete
                                         </button>
                                     </td>
                                 </tr>
