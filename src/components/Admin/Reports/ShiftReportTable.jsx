@@ -9,7 +9,8 @@ const varianceClass = (v) => {
 };
 
 export default function ShiftReportTable({ shifts }) {
-    if (!shifts || shifts.length === 0) {
+    const safeShifts = Array.isArray(shifts) ? shifts : [];
+    if (safeShifts.length === 0) {
         return <p className="text-gray-400 text-sm text-center py-10">No shifts in this range</p>;
     }
 
@@ -30,7 +31,7 @@ export default function ShiftReportTable({ shifts }) {
                     </tr>
                 </thead>
                 <tbody>
-                    {shifts.map((s) => (
+                    {safeShifts.map((s) => (
                         <tr key={s.shiftId} className="border-b border-gray-100">
                             <td className="py-2.5 pr-4 font-semibold text-gray-800">{s.openedBy?.fullName || '—'}</td>
                             <td className="py-2.5 pr-4 text-gray-500">{formatKenyanDateTime(s.openedAt)}</td>

@@ -1,5 +1,6 @@
 export default function ReportTable({ rows, totals, periodLabel }) {
-    if (!rows.length) {
+    const safeRows = Array.isArray(rows) ? rows : [];
+    if (!safeRows.length) {
         return <p className="text-gray-400 text-sm text-center py-10">No paid receipts in this period</p>;
     }
 
@@ -17,7 +18,7 @@ export default function ReportTable({ rows, totals, periodLabel }) {
                     </tr>
                 </thead>
                 <tbody>
-                    {rows.map((r) => (
+                    {safeRows.map((r) => (
                         <tr key={r.period} className="border-b border-gray-50">
                             <td className="py-2.5 pr-4 font-semibold text-gray-700">{r.period}</td>
                             <td className="py-2.5 pr-4 text-right text-gray-500">KES {r.subtotal.toLocaleString()}</td>
