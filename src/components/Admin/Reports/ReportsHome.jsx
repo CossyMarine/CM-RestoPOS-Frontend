@@ -32,6 +32,7 @@ export default function ReportsHome() {
 
     const fetchReport = useCallback(async () => {
         setLoading(true);
+        setData(null);
         try {
             let res;
             if (tab === 'daily') {
