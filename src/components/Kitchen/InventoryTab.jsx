@@ -10,6 +10,7 @@ export default function InventoryTab() {
     const [logTarget, setLogTarget] = useState(null); // the item currently being logged against
     const [quantity, setQuantity] = useState('');
     const [reason, setReason] = useState('used');
+const [wasteReason, setWasteReason] = useState('spoiled');
     const [note, setNote] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [showUsageReport, setShowUsageReport] = useState(false);
@@ -44,12 +45,20 @@ export default function InventoryTab() {
         }
         setSubmitting(true);
         try {
-            const res = await API.post('/inventory/usage', {
-                item: logTarget._id,
-                quantity: parseFloat(quantity),
-                reason,
-                note,
-            });
+            const res = reason === 'waste'
+                ? await API.post('/inventory/waste', {
+                      item: logTarget._id,
+                      unit: logTarget.unit?._id,
+                      quantity: Number(quantity),
+                      reason: wasteReason,
+                      note,
+                  })
+                : await API.post('/inventory/usage', {
+                      item: logTarget._id,
+                      quantity: Number(quantity),
+                      reason,
+                      note,
+                  });
             setItems((prev) => prev.map((i) => (i._id === logTarget._id ? res.data.item : i)));
             toast.success('Usage logged');
             closeLogModal();
@@ -188,7 +197,22 @@ export default function InventoryTab() {
                                     ))}
                                 </div>
                             </div>
-
+{reason === 'waste' && (
+    <div>
+        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Why?</label>
+        <select
+            value={wasteReason}
+            onChange={(e) => setWasteReason(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm"
+        >
+            <option value="spoiled">Spoiled</option>
+            <option value="expired">Expired</option>
+            <option value="damaged">Damaged</option>
+            <option value="spillage">Spillage</option>
+            <option value="other">Other</option>
+        </select>
+    </div>
+)}
                             <div>
                                 <label className="block text-xs font-semibold text-gray-400 mb-1">Note (optional)</label>
                                 <input
