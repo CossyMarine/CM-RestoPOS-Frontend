@@ -127,8 +127,8 @@ export default function ReportsHome() {
                 {loading ? (
                     <p className="text-gray-400 text-sm text-center py-10">Loading…</p>
                 ) : tab === 'shifts' ? (
-                    data ? <ShiftReportTable shifts={data} /> : null
-                ) : data ? (
+                    Array.isArray(data) ? <ShiftReportTable shifts={data} /> : null
+                ) : (data && Array.isArray(data.rows)) ? (
                     <ReportTable rows={data.rows} totals={data.totals} periodLabel={tab === 'monthly' ? 'Day' : 'Date'} />
                 ) : null}
             </div>
