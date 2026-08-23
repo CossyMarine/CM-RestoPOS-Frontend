@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import API from "../api/axios";
-
+import { validatePassword } from "../utils/validatePassword";
+import PasswordRequirements from "../components/PasswordRequirements";
 export default function ResetPassword() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -18,14 +19,15 @@ export default function ResetPassword() {
 
   if (!resetToken) return null;
 
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords don't match");
+    const passwordCheck = validatePassword(newPassword);
+    if (!passwordCheck.valid) {
+      toast.error(passwordCheck.errors[0]);
       return;
     }
-    if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords don't match");
       return;
     }
 
@@ -35,7 +37,12 @@ export default function ResetPassword() {
       toast.success("Password reset successful. Please log in.");
       navigate("/login", { replace: true });
     } catch (err) {
-      toast.error(err.response?.data?.message || "Couldn't reset password. Please start over.");
+      const requirements = err.response?.data?.requirements;
+      if (requirements?.length) {
+        requirements.forEach((r) => toast.error(r));
+      } else {
+        toast.error(err.response?.data?.message || "Couldn't reset password. Please start over.");
+      }
     } finally {
       setLoading(false);
     }
@@ -55,14 +62,16 @@ export default function ResetPassword() {
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                 New password
               </label>
-              <input
+                            <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
                 autoFocus
+                minLength={8}
                 className="w-full border border-stone-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
               />
+              <PasswordRequirements password={newPassword} />
             </div>
 
             <div>

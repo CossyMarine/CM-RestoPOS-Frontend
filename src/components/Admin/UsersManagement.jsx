@@ -3,6 +3,8 @@ import { UserPlus, ShieldCheck, Ban, CheckCircle2, RefreshCw, Users2 } from 'luc
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import ConfirmModal from './ConfirmModal';
+import { validatePassword } from '../../utils/validatePassword';
+import PasswordRequirements from '../PasswordRequirements';
 
 const ROLE_OPTIONS = [
     { value: 'admin', label: 'Admin' },
@@ -61,13 +63,14 @@ export default function UsersManagement() {
         return true;
     });
 
-    const handleCreate = async () => {
+       const handleCreate = async () => {
         if (!form.fullName || !form.contact || !form.password) {
             toast.error('Fill in all fields');
             return;
         }
-        if (form.password.length < 6) {
-            toast.error('Password must be at least 6 characters');
+        const passwordCheck = validatePassword(form.password);
+        if (!passwordCheck.valid) {
+            toast.error(passwordCheck.errors[0]);
             return;
         }
 
@@ -86,7 +89,12 @@ export default function UsersManagement() {
             fetchUsers();
         } catch (err) {
             console.error('Failed to create user', err);
-            toast.error(err.response?.data?.message || 'Failed to create account');
+            const requirements = err.response?.data?.requirements;
+            if (requirements?.length) {
+                requirements.forEach((r) => toast.error(r));
+            } else {
+                toast.error(err.response?.data?.message || 'Failed to create account');
+            }
         }
         setCreating(false);
     };
@@ -181,9 +189,10 @@ export default function UsersManagement() {
                                 type="password"
                                 value={form.password}
                                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                                placeholder="Min. 6 characters"
+                                placeholder="Min. 8 characters"
                                 className="input"
                             />
+                            <PasswordRequirements password={form.password} />
                         </Field>
 
                         <Field label="Role">

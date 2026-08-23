@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
 import { Check, X, Loader2 } from "lucide-react";
 import API from "../api/axios";
+import { validatePassword } from "../utils/validatePassword";
+import PasswordRequirements from "./PasswordRequirements";
 
 export default function RegisterForm({ onSuccess }) {
   const [method, setMethod] = useState("phone"); // "phone" | "email"
@@ -34,6 +36,11 @@ export default function RegisterForm({ onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) {
+      toast.error(passwordCheck.errors[0]);
+      return;
+    }
     if (password !== confirmPassword) {
       toast.error("Passwords don't match");
       return;
@@ -54,7 +61,12 @@ export default function RegisterForm({ onSuccess }) {
       toast.success("Account created!");
       onSuccess?.(res.data.user);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Couldn't create account");
+      const requirements = err.response?.data?.requirements;
+      if (requirements?.length) {
+        requirements.forEach((r) => toast.error(r));
+      } else {
+        toast.error(err.response?.data?.message || "Couldn't create account");
+      }
     } finally {
       setLoading(false);
     }
@@ -135,9 +147,10 @@ export default function RegisterForm({ onSuccess }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          minLength={6}
+          minLength={8}
           className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 font-medium placeholder:text-gray-400 focus:outline-none focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100 transition-all"
         />
+        <PasswordRequirements password={password} />
       </div>
 
       <div>
@@ -148,7 +161,7 @@ export default function RegisterForm({ onSuccess }) {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
-          minLength={6}
+          minLength={8}
           className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm text-gray-800 font-medium placeholder:text-gray-400 focus:outline-none focus:bg-white focus:ring-2 transition-all ${
             confirmPassword && confirmPassword !== password
               ? "border-red-300 focus:border-red-400 focus:ring-red-100"
@@ -156,7 +169,7 @@ export default function RegisterForm({ onSuccess }) {
           }`}
         />
         {confirmPassword && confirmPassword !== password && (
-          <p className="text-xs text-red-500 mt-1">Passwords don’t match.</p>
+          <p className="text-xs text-red-500 mt-1">Passwords don't match.</p>
         )}
       </div>
 

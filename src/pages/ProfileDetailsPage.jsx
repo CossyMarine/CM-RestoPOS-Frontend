@@ -5,7 +5,8 @@ import { ArrowLeft, Mail, Phone, Lock, UserCircle2 } from "lucide-react";
 import BottomNav from "../components/BottomNav";
 import { useAuth } from "../hooks/useAuth";
 import API from "../api/axios";
-
+import { validatePassword } from "../utils/validatePassword";
+import PasswordRequirements from "../components/PasswordRequirements";
 export default function ProfileDetailsPage() {
   const { user, loading, refetch } = useAuth();
   const navigate = useNavigate();
@@ -50,8 +51,13 @@ export default function ProfileDetailsPage() {
     }
   };
 
-  const handleChangePassword = async (e) => {
+    const handleChangePassword = async (e) => {
     e.preventDefault();
+    const passwordCheck = validatePassword(newPassword);
+    if (!passwordCheck.valid) {
+      toast.error(passwordCheck.errors[0]);
+      return;
+    }
     if (newPassword !== confirmPassword) {
       toast.error("New passwords don't match");
       return;
@@ -68,7 +74,12 @@ export default function ProfileDetailsPage() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Couldn't update your password");
+      const requirements = err.response?.data?.requirements;
+      if (requirements?.length) {
+        requirements.forEach((r) => toast.error(r));
+      } else {
+        toast.error(err.response?.data?.message || "Couldn't update your password");
+      }
     } finally {
       setSavingPassword(false);
     }
@@ -168,16 +179,17 @@ export default function ProfileDetailsPage() {
             />
           </div>
 
-          <div>
+                  <div>
             <label className="block text-xs font-bold text-stone-500 mb-1.5">New Password</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={8}
               className="w-full border border-stone-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
             />
+            <PasswordRequirements password={newPassword} />
           </div>
 
           <div>
@@ -187,11 +199,10 @@ export default function ProfileDetailsPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={8}
               className="w-full border border-stone-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
             />
           </div>
-
           <button
             type="submit"
             disabled={savingPassword}
