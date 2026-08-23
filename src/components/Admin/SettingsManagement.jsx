@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Save, RefreshCw, Landmark, MessageCircle, Phone, Gift, Table2, Percent } from 'lucide-react';import { toast } from 'react-toastify';
 import API from '../../api/axios';
-
+ import TableQRGenerator from './TableQRGenerator';
 const EMPTY = {
     tillNumber: '',
     tillName: '',
@@ -313,7 +313,7 @@ export default function SettingsManagement() {
                     {saving ? 'Saving…' : 'Save Settings'}
                 </button>
             </div>
-
+ <TableQRGenerator />
             <style>{`
                 .input {
                     width: 100%;

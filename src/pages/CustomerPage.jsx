@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { io } from "socket.io-client";
 import { toast } from "react-toastify";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { UtensilsCrossed, Plus, Minus, X, ShoppingCart, Clock, User, Heart, MessageCircle } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import API from "../api/axios";
@@ -69,6 +69,7 @@ function WhatsAppBubble({ number }) {
 export default function CustomerPage() {
   const { user } = useAuth();
   const [tableNumber, setTableNumber] = useState(() => localStorage.getItem("table_number") || "");
+   const [searchParams] = useSearchParams();
   const [menu, setMenu] = useState([]);
   const [category, setCategory] = useState("all");
   const [cart, setCart] = useState([]);
@@ -84,7 +85,13 @@ export default function CustomerPage() {
     setTableNumber(value);
     localStorage.setItem("table_number", value);
   };
-
+  useEffect(() => {
+    const scannedTable = searchParams.get("table");
+    if (scannedTable && !tableNumber) {
+      updateTableNumber(scannedTable);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     API.get("/menu")
       .then((res) => setMenu(res.data))
