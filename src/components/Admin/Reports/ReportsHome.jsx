@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarDays, Calendar, Percent, RefreshCw } from 'lucide-react';
+import { CalendarDays, Calendar, Percent, RefreshCw, ClipboardList } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../../api/axios';
 import ReportTable from './ReportTable';
+import ShiftReportTable from './ShiftReportTable';
 
 const TABS = [
     { id: 'daily', label: 'Daily', icon: CalendarDays },
     { id: 'monthly', label: 'Monthly', icon: Calendar },
     { id: 'tax', label: 'Tax (VAT)', icon: Percent },
+    { id: 'shifts', label: 'Shifts', icon: ClipboardList },
 ];
-
 const todayStr = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' });
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -23,8 +24,11 @@ export default function ReportsHome() {
     const now = new Date();
     const [month, setMonth] = useState(now.getMonth() + 1);
     const [year, setYear] = useState(now.getFullYear());
-    const [taxStart, setTaxStart] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`);
+        const [taxStart, setTaxStart] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`);
     const [taxEnd, setTaxEnd] = useState(todayStr());
+    const sevenDaysAgo = new Date(now); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    const [shiftStart, setShiftStart] = useState(sevenDaysAgo.toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' }));
+    const [shiftEnd, setShiftEnd] = useState(todayStr());
 
     const fetchReport = useCallback(async () => {
         setLoading(true);
@@ -34,8 +38,10 @@ export default function ReportsHome() {
                 res = await API.get('/reports/daily', { params: { date } });
             } else if (tab === 'monthly') {
                 res = await API.get('/reports/monthly', { params: { month, year } });
-            } else {
+            } else if (tab === 'tax') {
                 res = await API.get('/reports/tax', { params: { startDate: taxStart, endDate: taxEnd } });
+            } else {
+                res = await API.get('/shifts/report', { params: { startDate: shiftStart, endDate: shiftEnd } });
             }
             setData(res.data);
         } catch (err) {
@@ -43,7 +49,7 @@ export default function ReportsHome() {
             toast.error('Failed to load report');
         }
         setLoading(false);
-    }, [tab, date, month, year, taxStart, taxEnd]);
+    }, [tab, date, month, year, taxStart, taxEnd, shiftStart, shiftEnd]);
 
     useEffect(() => { fetchReport(); }, [fetchReport]);
 
@@ -95,7 +101,7 @@ export default function ReportsHome() {
                             </Field>
                         </>
                     )}
-                    {tab === 'tax' && (
+                                        {tab === 'tax' && (
                         <>
                             <Field label="From">
                                 <input type="date" value={taxStart} onChange={(e) => setTaxStart(e.target.value)} className="input" />
@@ -105,10 +111,22 @@ export default function ReportsHome() {
                             </Field>
                         </>
                     )}
+                    {tab === 'shifts' && (
+                        <>
+                            <Field label="From">
+                                <input type="date" value={shiftStart} onChange={(e) => setShiftStart(e.target.value)} className="input" />
+                            </Field>
+                            <Field label="To">
+                                <input type="date" value={shiftEnd} onChange={(e) => setShiftEnd(e.target.value)} className="input" />
+                            </Field>
+                        </>
+                    )}
                 </div>
 
                 {loading ? (
                     <p className="text-gray-400 text-sm text-center py-10">Loading…</p>
+                ) : tab === 'shifts' ? (
+                    data ? <ShiftReportTable shifts={data} /> : null
                 ) : data ? (
                     <ReportTable rows={data.rows} totals={data.totals} periodLabel={tab === 'monthly' ? 'Day' : 'Date'} />
                 ) : null}
