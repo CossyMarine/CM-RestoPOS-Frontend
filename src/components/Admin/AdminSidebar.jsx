@@ -9,7 +9,6 @@ export const ADMIN_NAV_ITEMS = [
     { id: 'menu', label: 'Manage Menu', icon: UtensilsCrossed },
     { id: 'kitchen', label: 'Kitchen', icon: ChefHat },
     { id: 'inventory', label: 'Inventory', icon: Boxes },
-    { id: 'batchIntegrityTest', label: 'Batch Integrity DEV TEST', icon: FlaskConical },
     { id: 'orders', label: 'Orders & Receipts', icon: ReceiptText },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'reports', label: 'Reports', icon: FileBarChart },
