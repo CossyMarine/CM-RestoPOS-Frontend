@@ -313,6 +313,7 @@ export default function KitchenPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-800 antialiased font-sans">
+            
             <KitchenNavbar
                 connected={connected}
                 servedToday={stats.servedToday}
@@ -371,7 +372,7 @@ export default function KitchenPage() {
                     saving={savingSettings}
                 />
             )}
-
+<KitchenShiftBar />
             <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} resolveImg={resolveImg} />
         </div>
     );
