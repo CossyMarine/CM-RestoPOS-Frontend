@@ -330,6 +330,7 @@ export default function KitchenPage() {
                     {error}
                 </div>
             )}
+<KitchenShiftBar />
 
             {activeTab === 'live' && (
                 <LiveQueueTab
