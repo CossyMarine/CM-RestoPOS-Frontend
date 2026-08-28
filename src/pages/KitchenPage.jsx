@@ -373,7 +373,7 @@ export default function KitchenPage() {
                     saving={savingSettings}
                 />
             )}
-            <KitchenShiftBar />
+            
 
             <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} resolveImg={resolveImg} />
         </div>
