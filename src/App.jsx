@@ -16,7 +16,7 @@ import ProfileDetailsPage from "./pages/ProfileDetailsPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import VerifyResetCode from "./pages/VerifyResetCode";
 import ResetPassword from "./pages/ResetPassword";
-
+import BusinessOnboardingPage from "./pages/BusinessOnboardingPage";
 
 function LoadingScreen() {
   return (
@@ -73,6 +73,14 @@ function AppRoutes() {
             </StaffRoute>
           }
         />
+        <Route
+  path="/superadmin/onboard"
+  element={
+    <StaffRoute user={user} loading={loading} allow="superadmin">
+      <BusinessOnboardingPage />
+    </StaffRoute>
+  }
+/>
         <Route
           path="/waiter"
           element={
