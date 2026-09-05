@@ -1,12 +1,9 @@
 import { useState } from "react";
+import API from "../api/axios";
 
 // Superadmin business onboarding wizard.
-// Drop into your React app and route a superadmin-only page to it.
-// Expects the same cookie-based auth session used elsewhere in the app
-// (protect + requireSuperAdmin on the backend) — no token handling needed
-// here as long as this runs on an origin your CORS config already trusts.
-
-const API_BASE = "/api/superadmin";
+// Uses the shared axios instance (src/api/axios.js) — same withCredentials
+// cookie session and baseURL every other page already relies on.
 
 const STEPS = [
   { key: "business", label: "Business information" },
@@ -22,18 +19,7 @@ const emptyState = {
   settings: { tillNumber: "", tillName: "", taxRatePercent: 16, taxInclusive: true },
 };
 
-async function apiCall(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || "Something went wrong");
-  return data;
-}
-
-export default function BusinessOnboarding() {
+export default function BusinessOnboardingPage() {
   const [stepIndex, setStepIndex] = useState(0);
   const [state, setState] = useState(emptyState);
   const [loading, setLoading] = useState(false);
@@ -52,14 +38,11 @@ export default function BusinessOnboarding() {
     setLoading(true);
     setError("");
     try {
-      const { business } = await apiCall("/businesses", {
-        method: "POST",
-        body: JSON.stringify(state.business),
-      });
-      setState((prev) => ({ ...prev, businessId: business._id }));
+      const { data } = await API.post("/superadmin/businesses", state.business);
+      setState((prev) => ({ ...prev, businessId: data.business._id }));
       goNext();
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
@@ -69,13 +52,10 @@ export default function BusinessOnboarding() {
     setLoading(true);
     setError("");
     try {
-      await apiCall(`/businesses/${state.businessId}/admin`, {
-        method: "POST",
-        body: JSON.stringify(state.admin),
-      });
+      await API.post(`/superadmin/businesses/${state.businessId}/admin`, state.admin);
       goNext();
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
@@ -85,17 +65,14 @@ export default function BusinessOnboarding() {
     setLoading(true);
     setError("");
     try {
-      await apiCall(`/businesses/${state.businessId}/settings`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          tillNumber: state.settings.tillNumber,
-          tillName: state.settings.tillName,
-          tax: { ratePercent: Number(state.settings.taxRatePercent), inclusive: state.settings.taxInclusive },
-        }),
+      await API.patch(`/superadmin/businesses/${state.businessId}/settings`, {
+        tillNumber: state.settings.tillNumber,
+        tillName: state.settings.tillName,
+        tax: { ratePercent: Number(state.settings.taxRatePercent), inclusive: state.settings.taxInclusive },
       });
       goNext();
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
@@ -105,13 +82,10 @@ export default function BusinessOnboarding() {
     setLoading(true);
     setError("");
     try {
-      await apiCall(`/businesses/${state.businessId}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: "active" }),
-      });
+      await API.patch(`/superadmin/businesses/${state.businessId}/status`, { status: "active" });
       setDone(true);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
