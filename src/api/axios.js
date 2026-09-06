@@ -33,13 +33,13 @@ API.interceptors.response.use(
   (error) => {
     const isMeCheck = error.config?.url?.includes("/auth/me");
 
-    if (error.code === "ECONNABORTED" || !error.response) {
-      console.warn("Network error or timeout:", error.message);
-    } else if (error.response?.status === 401 && !isMeCheck) {
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+         if (error.code === "ECONNABORTED" || !error.response) {
+       console.warn("Network error or timeout:", error.message);
+    } else if (error.response?.data?.businessSuspended) {
+      if (window.location.pathname !== "/suspended") {
+        window.location.href = "/suspended";
       }
-    } else if (error.response?.status !== 401) {
+    } else if (error.response?.status === 401 && !isMeCheck) {
       console.error("API Error:", error?.response?.data || error.message);
     }
 

@@ -18,6 +18,7 @@ import VerifyResetCode from "./pages/VerifyResetCode";
 import ResetPassword from "./pages/ResetPassword";
 import BusinessOnboardingPage from "./pages/BusinessOnboardingPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import PosSuspendedPage from "./pages/PosSuspendedPage";
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950 text-gray-400 text-sm">
@@ -51,6 +52,7 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-reset-code" element={<VerifyResetCode />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/suspended" element={<PosSuspendedPage />} />
 
         <Route
           path="/login"
