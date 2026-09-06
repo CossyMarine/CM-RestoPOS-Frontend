@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import API from "../api/axios";
+import { useAuth } from "../hooks/useAuth";
 
 // Superadmin business onboarding wizard.
 // Uses the shared axios instance (src/api/axios.js) — same withCredentials
@@ -20,6 +23,8 @@ const emptyState = {
 };
 
 export default function BusinessOnboardingPage() {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const [stepIndex, setStepIndex] = useState(0);
   const [state, setState] = useState(emptyState);
   const [loading, setLoading] = useState(false);
@@ -98,9 +103,20 @@ export default function BusinessOnboardingPage() {
     setError("");
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
   return (
     <div style={styles.page}>
       <style>{fontStack}</style>
+      <div style={styles.topBar}>
+        <button onClick={() => navigate("/superadmin/dashboard")} style={styles.backLink}>
+          <ArrowLeft size={15} /> Back to businesses
+        </button>
+        <button onClick={handleLogout} style={styles.logoutLink}>Log out</button>
+      </div>
       <div style={styles.shell}>
         <aside style={styles.stepRail}>
           <h1 style={styles.railTitle}>Onboard a business</h1>
@@ -225,6 +241,9 @@ export default function BusinessOnboardingPage() {
               <h2 style={styles.formTitle}>Business is live</h2>
               <p style={styles.formHint}>{state.business.name} can log in and start taking orders.</p>
               <PrimaryButton onClick={startAnother}>Onboard another business</PrimaryButton>
+              <button onClick={() => navigate("/superadmin/dashboard")} style={styles.secondaryLink}>
+                Back to businesses
+              </button>
             </div>
           )}
         </main>
@@ -319,7 +338,50 @@ const styles = {
     background: PAPER,
     color: INK,
     fontFamily: "Georgia, 'Iowan Old Style', 'Times New Roman', serif",
-    padding: "48px 24px",
+    padding: "24px 24px 48px",
+  },
+  topBar: {
+    maxWidth: 980,
+    margin: "0 auto 28px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  backLink: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    background: "none",
+    border: "none",
+    color: "#6B6455",
+    fontFamily: "system-ui, sans-serif",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+    padding: 0,
+  },
+  logoutLink: {
+    background: "none",
+    border: "none",
+    color: "#6B6455",
+    fontFamily: "system-ui, sans-serif",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+    padding: 0,
+  },
+  secondaryLink: {
+    display: "block",
+    marginTop: 14,
+    background: "none",
+    border: "none",
+    color: "#6B6455",
+    fontFamily: "system-ui, sans-serif",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+    padding: 0,
+    textDecoration: "underline",
   },
   shell: {
     maxWidth: 980,

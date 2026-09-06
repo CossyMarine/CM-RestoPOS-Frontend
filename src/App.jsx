@@ -17,7 +17,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import VerifyResetCode from "./pages/VerifyResetCode";
 import ResetPassword from "./pages/ResetPassword";
 import BusinessOnboardingPage from "./pages/BusinessOnboardingPage";
-
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950 text-gray-400 text-sm">
@@ -105,6 +105,14 @@ function AppRoutes() {
             </StaffRoute>
           }
         />
+        <Route
+  path="/superadmin/dashboard"
+  element={
+    <StaffRoute user={user} loading={loading} allow="superadmin">
+      <SuperAdminDashboard />
+    </StaffRoute>
+  }
+/>
 
         <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
 
