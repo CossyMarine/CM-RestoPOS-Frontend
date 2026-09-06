@@ -20,7 +20,7 @@ export default function MenuManagement() {
 
     const fetchMenu = async () => {
         try {
-            const res = await API.get('/menu');
+            const res = await API.get('/menu/admin');
             setMenu(res.data);
         } catch (err) {
             console.error('Failed to fetch menu', err);
