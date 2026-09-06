@@ -37,7 +37,8 @@ API.interceptors.response.use(
        console.warn("Network error or timeout:", error.message);
     } else if (error.response?.data?.businessSuspended) {
       if (window.location.pathname !== "/suspended") {
-        window.location.href = "/suspended";
+        const role = error.response.data.isAdmin ? "admin" : "staff";
+        window.location.href = `/suspended?role=${role}`;
       }
     } else if (error.response?.status === 401 && !isMeCheck) {
       console.error("API Error:", error?.response?.data || error.message);

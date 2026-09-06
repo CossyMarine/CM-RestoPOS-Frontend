@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
@@ -19,6 +20,7 @@ import ResetPassword from "./pages/ResetPassword";
 import BusinessOnboardingPage from "./pages/BusinessOnboardingPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import PosSuspendedPage from "./pages/PosSuspendedPage";
+
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950 text-gray-400 text-sm">
@@ -35,11 +37,34 @@ function StaffRoute({ user, loading, allow, children }) {
   return children;
 }
 
+// Watches auth state and force-redirects suspended businesses to /suspended.
+// Must be rendered INSIDE <BrowserRouter> since it uses router hooks.
+function SuspensionGuard({ user, loading }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (
+      !loading &&
+      user &&
+      user.role !== "superadmin" &&
+      user.businessStatus === "suspended" &&
+      location.pathname !== "/suspended"
+    ) {
+      navigate(`/suspended?role=${user.isAdmin ? "admin" : "staff"}`);
+    }
+  }, [user, loading, location.pathname, navigate]);
+
+  return null;
+}
+
 function AppRoutes() {
   const { user, loading, refetch } = useAuth();
 
   return (
     <BrowserRouter>
+      <SuspensionGuard user={user} loading={loading} />
+
       <Routes>
         <Route path="/" element={<Navigate to="/home" replace />} />
 
@@ -76,13 +101,13 @@ function AppRoutes() {
           }
         />
         <Route
-  path="/superadmin/onboard"
-  element={
-    <StaffRoute user={user} loading={loading} allow="superadmin">
-      <BusinessOnboardingPage />
-    </StaffRoute>
-  }
-/>
+          path="/superadmin/onboard"
+          element={
+            <StaffRoute user={user} loading={loading} allow="superadmin">
+              <BusinessOnboardingPage />
+            </StaffRoute>
+          }
+        />
         <Route
           path="/waiter"
           element={
@@ -108,13 +133,13 @@ function AppRoutes() {
           }
         />
         <Route
-  path="/superadmin/dashboard"
-  element={
-    <StaffRoute user={user} loading={loading} allow="superadmin">
-      <SuperAdminDashboard />
-    </StaffRoute>
-  }
-/>
+          path="/superadmin/dashboard"
+          element={
+            <StaffRoute user={user} loading={loading} allow="superadmin">
+              <SuperAdminDashboard />
+            </StaffRoute>
+          }
+        />
 
         <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
 

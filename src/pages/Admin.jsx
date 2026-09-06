@@ -82,11 +82,7 @@ export default function Admin() {
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-800 flex">
-                        {user?.businessStatus === 'suspended' && (
-                <div className="bg-red-600 text-white text-sm font-bold text-center py-2 px-4">
-                    POS suspended — you have to pay to continue.
-                </div>
-            )}
+                        
             <AdminSidebar
                 activeView={activeView}
                 onNavigate={setActiveView}
