@@ -77,11 +77,10 @@ export default function WaiterDashboard() {
   const [waiterShiftOpen, setWaiterShiftOpen] = useState(true); // assume open until checked
 
   // ---- Initial data ----
-  useEffect(() => {
-    API.get("/menu")
-      .then((res) => setMenu(res.data))
-      .catch(() => toast.error("Could not load the menu"))
-      .finally(() => setMenuLoading(false));
+  API.get("/menu/admin")
+  .then((res) => setMenu(res.data))
+  .catch(() => toast.error("Could not load the menu"))
+  .finally(() => setMenuLoading(false));
 
     API.get("/auth/waiters")
       .then((res) => setWaiters(res.data))
