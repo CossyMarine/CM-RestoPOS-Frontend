@@ -1,3 +1,4 @@
+// src/hooks/useComboPayment.js
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { toast } from 'react-toastify';
@@ -6,25 +7,135 @@ import API from '../api/axios';
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
 export default function useComboPayment({ receipt, onClose, onPaid }) {
-    // ... all existing state unchanged ...
+    const [paymentMethod, setPaymentMethod] = useState(''); // 'cash' | 'prompt' | 'both' | 'till' | 'reward'
+    const [amountPaid, setAmountPaid] = useState('');
+    const [mpesaPhone, setMpesaPhone] = useState('');
+    const [tillAmount, setTillAmount] = useState('');
+    const [rewardAmount, setRewardAmount] = useState('');
+    const [rewardIdentifier, setRewardIdentifier] = useState('');
+    const [processing, setProcessing] = useState(false);
+
+    const [giveReward, setGiveReward] = useState(false);
+    const [giveRewardIdentifier, setGiveRewardIdentifier] = useState('');
 
     const [mpesaState, setMpesaState] = useState('idle'); // idle | pending | success | failed
     const [mpesaMessage, setMpesaMessage] = useState('');
-    const [mpesaCheckoutRequestId, setMpesaCheckoutRequestId] = useState(null); // NEW
+    const [mpesaCheckoutRequestId, setMpesaCheckoutRequestId] = useState(null);
+    const [remaining, setRemaining] = useState(0);
 
-    // ... allowPrinting effect, reset(), handleClose, refreshAfterPayment,
-    //     submitGiveReward, printPaidReceipt all unchanged, EXCEPT reset()
-    //     gets one added line: setMpesaCheckoutRequestId(null); ...
+    const [allowPrinting, setAllowPrinting] = useState(false);
+    const [printTarget, setPrintTarget] = useState(null);
 
-    // NEW — same connect-on-mount, disconnect-on-unmount pattern already
-    // used everywhere else in this app (see OrdersLedger/index.jsx). Only
-    // reacts to the checkoutRequestId currently being waited on, so it
-    // ignores results for other bills' payments in flight elsewhere.
+    const [comboCash, setComboCash] = useState('');
+    const [comboTill, setComboTill] = useState('');
+    const [comboPromptPhone, setComboPromptPhone] = useState('');
+    const [comboApplying, setComboApplying] = useState(false);
+    const [comboSendingPrompt, setComboSendingPrompt] = useState(false);
+    const [discountKind, setDiscountKind] = useState(null); // 'percent' | 'fixed' | null
+    const [discountValue, setDiscountValue] = useState('');
+    const [discountReason, setDiscountReason] = useState('');
+    const [discountApplying, setDiscountApplying] = useState(false);
+    const [currentDiscount, setCurrentDiscount] = useState(null); // whatever's actually saved on the receipt
+
+    // Load the global "allow printing during payment" setting once.
     useEffect(() => {
+        API.get('/settings')
+            .then((res) => setAllowPrinting(!!res.data.allowPrintingDuringPayment))
+            .catch(() => setAllowPrinting(false));
+    }, []);
+
+    const reset = () => {
+        setPaymentMethod('');
+        setAmountPaid('');
+        setMpesaPhone('');
+        setTillAmount('');
+        setRewardAmount('');
+        setRewardIdentifier('');
+        setGiveReward(false);
+        setGiveRewardIdentifier('');
+        setMpesaState('idle');
+        setMpesaMessage('');
+        setMpesaCheckoutRequestId(null);
+        setComboCash('');
+        setComboTill('');
+        setComboPromptPhone('');
+        setDiscountKind(null);
+        setDiscountValue('');
+        setDiscountReason('');
+    };
+
+    const handleClose = () => { reset(); onClose(); };
+
+    const refreshAfterPayment = () => onPaid?.();
+
+    // Fires the manual "Give Reward" cashback for a walk-in payer identified by
+    // email/phone. Never blocks the payment flow — failures here are surfaced
+    // but the payment itself has already succeeded.
+    const submitGiveReward = async (amountJustPaid) => {
+        if (!giveReward || !giveRewardIdentifier.trim() || !amountJustPaid || amountJustPaid <= 0) return;
+        try {
+            const res = await API.post('/wallet/admin/add-reward', {
+                identifier: giveRewardIdentifier.trim(),
+                amountSpent: amountJustPaid,
+            });
+            toast.success(res.data.message || 'Reward credited');
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Payment recorded, but the reward could not be credited');
+        }
+    };
+
+    // Prints the receipt once a bill is fully settled, gated by the admin's
+    // "allow printing during payment" toggle. printTarget is rendered outside
+    // the receipt-gated part of the tree so it survives the modal closing.
+    const printPaidReceipt = (paidReceipt) => {
+        if (!allowPrinting || !paidReceipt) return;
+        setPrintTarget(paidReceipt);
+        setTimeout(() => {
+            window.print();
+            API.patch(`/receipts/${paidReceipt._id}/print`).catch(() => {});
+            setPrintTarget(null);
+        }, 150);
+    };
+
+    useEffect(() => {
+        if (receipt) {
+            setRemaining(Number(((receipt.totalDue ?? receipt.subtotal) - (receipt.amountPaid || 0)).toFixed(2)));
+            setCurrentDiscount(receipt.discount?.kind ? receipt.discount : null);
+        }
+        reset();
+
+        // If a prompt was already sent for this bill (e.g. cashier stepped away
+        // to serve someone else, or the page was reloaded mid-payment), show
+        // that instead of a blank payment screen — and re-arm the socket
+        // listener below with the in-flight checkoutRequestId, so a
+        // completion that arrives after this reload is still caught instead
+        // of being silently ignored.
+        if (receipt?.mpesaStatus === 'pending' && receipt?.mpesaCheckoutRequestId) {
+            setPaymentMethod('prompt');
+            setMpesaPhone(receipt.mpesaPhone || '');
+            setMpesaState('pending');
+            setMpesaMessage(`Waiting on ${receipt.mpesaPhone || 'the customer'} to enter their M-Pesa PIN.`);
+            setMpesaCheckoutRequestId(receipt.mpesaCheckoutRequestId);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [receipt?._id]);
+
+    // Real-time confirmation. Without this, mpesaState never leaves
+    // 'pending' after handleSendStk/handleComboSendPrompt fire — the
+    // backend correctly marks the receipt paid, but nothing here ever
+    // finds out, so the UI sits on "waiting for confirmation" forever
+    // regardless of what actually happened. Only reacts to the
+    // checkoutRequestId currently being waited on, so it ignores results
+    // for other bills' payments in flight elsewhere (same
+    // connect-on-mount/disconnect-on-unmount pattern used throughout the
+    // app, e.g. OrdersLedger/index.jsx).
+    useEffect(() => {
+        if (!mpesaCheckoutRequestId) return;
+
         const socket = io(SOCKET_URL);
 
         socket.on('mpesa:result', (payload) => {
-            if (!mpesaCheckoutRequestId || payload.checkoutRequestId !== mpesaCheckoutRequestId) return;
+            if (payload.checkoutRequestId !== mpesaCheckoutRequestId) return;
 
             if (payload.status === 'success') {
                 setMpesaState('success');
@@ -39,15 +150,72 @@ export default function useComboPayment({ receipt, onClose, onPaid }) {
                 setMpesaState('failed');
                 setMpesaMessage(payload.message || 'Payment was not completed');
             }
-            // 'succeeded-unapplied' deliberately left alone for now — see
-            // note in the earlier version of this fix.
         });
 
         return () => socket.disconnect();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mpesaCheckoutRequestId]);
 
-    // ... handleCashPay, handleTillPay unchanged ...
+    const cashChange = paymentMethod === 'cash' && amountPaid
+        ? parseFloat(amountPaid) - remaining
+        : null;
+
+    const rewardRemainder = paymentMethod === 'reward'
+        ? Math.max(Number((remaining - (parseFloat(rewardAmount) || 0)).toFixed(2)), 0)
+        : remaining;
+
+    const comboEntered = (parseFloat(comboCash) || 0) + (parseFloat(comboTill) || 0);
+    const comboAfterApply = receipt ? Number((remaining - comboEntered).toFixed(2)) : 0;
+
+    const handleCashPay = async () => {
+        const received = parseFloat(amountPaid);
+        if (isNaN(received) || received < remaining) {
+            toast.error('Amount received cannot be less than the balance due');
+            return;
+        }
+        setProcessing(true);
+        try {
+            const res = await API.patch(`/receipts/${receipt._id}/pay`, { amountPaid: received });
+            toast.success('Payment recorded');
+            await submitGiveReward(remaining);
+            printPaidReceipt(res.data.receipt);
+            reset();
+            onPaid?.();
+            onClose();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Payment failed');
+        }
+        setProcessing(false);
+    };
+
+    const handleTillPay = async () => {
+        const amt = parseFloat(tillAmount);
+        if (isNaN(amt) || amt <= 0 || amt > remaining) {
+            toast.error(`Enter an amount between 1 and ${remaining}`);
+            return;
+        }
+        setProcessing(true);
+        try {
+            const res = await API.post('/wallet/pay/manual', { receiptId: receipt._id, amount: amt });
+            toast.success('Payment recorded');
+            await submitGiveReward(amt);
+            const newRemaining = Number((remaining - amt).toFixed(2));
+            if (newRemaining <= 0) {
+                printPaidReceipt(res.data.receipt);
+                reset();
+                onPaid?.();
+                onClose();
+            } else {
+                setRemaining(newRemaining);
+                setTillAmount('');
+                setPaymentMethod('');
+                refreshAfterPayment();
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Payment failed');
+        }
+        setProcessing(false);
+    };
 
     const handleSendStk = async () => {
         if (!mpesaPhone.trim()) {
@@ -62,7 +230,7 @@ export default function useComboPayment({ receipt, onClose, onPaid }) {
                 phone: mpesaPhone.trim(),
                 cashAmount: 0,
             });
-            setMpesaCheckoutRequestId(res.data.checkoutRequestId); // NEW
+            setMpesaCheckoutRequestId(res.data.checkoutRequestId);
             setMpesaMessage(res.data.message || 'STK push sent. Ask the customer to enter their M-Pesa PIN.');
         } catch (err) {
             setMpesaState('failed');
@@ -79,11 +247,115 @@ export default function useComboPayment({ receipt, onClose, onPaid }) {
         }
         setMpesaState('idle');
         setMpesaMessage('');
-        setMpesaCheckoutRequestId(null); // NEW
+        setMpesaCheckoutRequestId(null);
     };
 
-    // ... handleRewardPay, applyDiscountToBill, clearDiscountFromBill,
-    //     handleComboApply unchanged ...
+    const handleRewardPay = async () => {
+        const amt = parseFloat(rewardAmount);
+        if (isNaN(amt) || amt <= 0 || amt > remaining) {
+            toast.error(`Enter an amount between 1 and ${remaining}`);
+            return;
+        }
+        if (!rewardIdentifier.trim()) {
+            toast.error("Enter the customer's registered email or phone");
+            return;
+        }
+        setProcessing(true);
+        try {
+            const res = await API.patch(`/receipts/${receipt._id}/pay/combo`, {
+                cashAmount: 0,
+                tillAmount: 0,
+                rewardAmount: amt,
+                rewardIdentifier: rewardIdentifier.trim(),
+            });
+            toast.success(res.data.message);
+            const newRemaining = res.data.balanceRemaining ?? Number((remaining - amt).toFixed(2));
+            if (newRemaining <= 0) {
+                printPaidReceipt(res.data.receipt);
+                reset();
+                onPaid?.();
+                onClose();
+            } else {
+                setRemaining(newRemaining);
+                setRewardAmount('');
+                setRewardIdentifier('');
+                setPaymentMethod('');
+                refreshAfterPayment();
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Payment failed');
+        }
+        setProcessing(false);
+    };
+
+    const applyDiscountToBill = async () => {
+        const value = parseFloat(discountValue);
+        if (!discountKind) { toast.error('Choose percent or fixed amount'); return; }
+        if (isNaN(value) || value <= 0) { toast.error('Enter a discount value greater than 0'); return; }
+        if (discountKind === 'percent' && value > 100) { toast.error('Percentage cannot exceed 100'); return; }
+        setDiscountApplying(true);
+        try {
+            const res = await API.patch(`/receipts/${receipt._id}/discount`, {
+                kind: discountKind,
+                value,
+                reason: discountReason.trim() || undefined,
+            });
+            toast.success('Discount applied');
+            setCurrentDiscount(res.data.receipt.discount);
+            setRemaining(Number((res.data.receipt.totalDue - (res.data.receipt.amountPaid || 0)).toFixed(2)));
+            setDiscountKind(null);
+            setDiscountValue('');
+            setDiscountReason('');
+            refreshAfterPayment();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to apply discount');
+        }
+        setDiscountApplying(false);
+    };
+
+    const clearDiscountFromBill = async () => {
+        setDiscountApplying(true);
+        try {
+            const res = await API.patch(`/receipts/${receipt._id}/discount`, { kind: null });
+            toast.success('Discount cleared');
+            setCurrentDiscount(null);
+            setRemaining(Number((res.data.receipt.totalDue - (res.data.receipt.amountPaid || 0)).toFixed(2)));
+            refreshAfterPayment();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to clear discount');
+        }
+        setDiscountApplying(false);
+    };
+
+    const handleComboApply = async () => {
+        if (comboEntered <= 0) { toast.error('Enter at least one amount'); return; }
+        if (comboAfterApply < -0.01) { toast.error('That adds up to more than the balance due'); return; }
+        setComboApplying(true);
+        try {
+            const res = await API.patch(`/receipts/${receipt._id}/pay/combo`, {
+                cashAmount: parseFloat(comboCash) || 0,
+                tillAmount: parseFloat(comboTill) || 0,
+                rewardAmount: 0,
+            });
+            toast.success(res.data.message);
+            await submitGiveReward(comboEntered);
+            const newRemaining = res.data.balanceRemaining ?? 0;
+            setRemaining(newRemaining);
+            setComboCash('');
+            setComboTill('');
+            if (newRemaining <= 0) {
+                printPaidReceipt(res.data.receipt);
+                reset();
+                onPaid?.();
+                onClose();
+            } else {
+                refreshAfterPayment();
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Payment failed');
+        }
+        setComboApplying(false);
+    };
 
     const handleComboSendPrompt = async () => {
         if (!comboPromptPhone.trim()) { toast.error("Enter the customer's M-Pesa number"); return; }
@@ -95,7 +367,7 @@ export default function useComboPayment({ receipt, onClose, onPaid }) {
                 phone: comboPromptPhone.trim(),
                 cashAmount: 0,
             });
-            setMpesaCheckoutRequestId(res.data.checkoutRequestId); // NEW
+            setMpesaCheckoutRequestId(res.data.checkoutRequestId);
             setMpesaMessage(res.data.message || 'STK push sent. Ask the customer to enter their M-Pesa PIN.');
         } catch (err) {
             setMpesaState('failed');
@@ -105,6 +377,29 @@ export default function useComboPayment({ receipt, onClose, onPaid }) {
     };
 
     return {
-        // ... everything unchanged ...
+        paymentMethod, setPaymentMethod,
+        amountPaid, setAmountPaid,
+        mpesaPhone, setMpesaPhone,
+        tillAmount, setTillAmount,
+        rewardAmount, setRewardAmount,
+        rewardIdentifier, setRewardIdentifier,
+        processing,
+        giveReward, setGiveReward,
+        giveRewardIdentifier, setGiveRewardIdentifier,
+        mpesaState, mpesaMessage,
+        remaining, printTarget,
+        comboCash, setComboCash,
+        comboTill, setComboTill,
+        comboPromptPhone, setComboPromptPhone,
+        comboApplying, comboSendingPrompt,
+        cashChange, rewardRemainder, comboEntered, comboAfterApply,
+        handleClose,
+        handleCashPay, handleTillPay, handleSendStk, handleRetryMpesa,
+        handleRewardPay, handleComboApply, handleComboSendPrompt,
+        discountKind, setDiscountKind,
+        discountValue, setDiscountValue,
+        discountReason, setDiscountReason,
+        discountApplying, currentDiscount,
+        applyDiscountToBill, clearDiscountFromBill,
     };
 }
