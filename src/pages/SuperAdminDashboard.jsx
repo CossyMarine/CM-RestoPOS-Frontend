@@ -212,20 +212,39 @@ function MpesaConfigCard({ businessId, config, onSaved }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    shortcode: '', consumerKey: '', consumerSecret: '', passkey: '',
+    shortcode: '', shortcodeType: 'till', consumerKey: '', consumerSecret: '', passkey: '',
     environment: 'sandbox', enabled: true,
   });
 
   useEffect(() => {
     if (config) {
-      setForm((f) => ({ ...f, shortcode: config.shortcode || '', environment: config.environment || 'sandbox', enabled: !!config.enabled }));
+      setForm((f) => ({
+        ...f,
+        shortcode: config.shortcode || '',
+        shortcodeType: config.shortcodeType || 'till',
+        environment: config.environment || 'sandbox',
+        enabled: !!config.enabled,
+      }));
     }
   }, [config]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await API.patch(`/superadmin/businesses/${businessId}/payment-config`, form);
+      // Only include secret fields if the user actually typed something —
+      // an empty string would encrypt to null and silently overwrite the
+      // real saved secret. Non-secret fields are always safe to send as-is.
+      const payload = {
+        shortcode: form.shortcode,
+        shortcodeType: form.shortcodeType,
+        environment: form.environment,
+        enabled: form.enabled,
+        ...(form.consumerKey && { consumerKey: form.consumerKey }),
+        ...(form.consumerSecret && { consumerSecret: form.consumerSecret }),
+        ...(form.passkey && { passkey: form.passkey }),
+      };
+
+      await API.patch(`/superadmin/businesses/${businessId}/payment-config`, payload);
       toast.success('M-Pesa configuration saved');
       setEditing(false);
       onSaved();
@@ -251,8 +270,9 @@ function MpesaConfigCard({ businessId, config, onSaved }) {
       {!editing ? (
         <>
           {config ? (
-            <p className="text-xs text-gray-500 space-y-0.5">
-              Shortcode: <span className="font-semibold text-gray-700">{config.shortcode}</span> · {config.environment}
+            <p className="text-xs text-gray-500">
+              Shortcode: <span className="font-semibold text-gray-700">{config.shortcode}</span>
+              {' '}({config.shortcodeType || 'till'}) · {config.environment}
             </p>
           ) : (
             <p className="text-xs text-gray-400">No M-Pesa credentials on file.</p>
@@ -266,16 +286,23 @@ function MpesaConfigCard({ businessId, config, onSaved }) {
         </>
       ) : (
         <div className="space-y-2">
-          <input placeholder="Shortcode" value={form.shortcode}
-            onChange={(e) => setForm({ ...form, shortcode: e.target.value })}
-            className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5" />
-          <input placeholder="Consumer Key" type="password" value={form.consumerKey}
+          <div className="flex gap-2">
+            <input placeholder="Shortcode" autoComplete="off" value={form.shortcode}
+              onChange={(e) => setForm({ ...form, shortcode: e.target.value })}
+              className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5" />
+            <select value={form.shortcodeType} onChange={(e) => setForm({ ...form, shortcodeType: e.target.value })}
+              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5">
+              <option value="till">Till (Buy Goods)</option>
+              <option value="paybill">Paybill</option>
+            </select>
+          </div>
+          <input placeholder="Consumer Key" type="password" autoComplete="new-password" value={form.consumerKey}
             onChange={(e) => setForm({ ...form, consumerKey: e.target.value })}
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5" />
-          <input placeholder="Consumer Secret" type="password" value={form.consumerSecret}
+          <input placeholder="Consumer Secret" type="password" autoComplete="new-password" value={form.consumerSecret}
             onChange={(e) => setForm({ ...form, consumerSecret: e.target.value })}
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5" />
-          <input placeholder="Passkey" type="password" value={form.passkey}
+          <input placeholder="Passkey" type="password" autoComplete="new-password" value={form.passkey}
             onChange={(e) => setForm({ ...form, passkey: e.target.value })}
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5" />
           <div className="flex items-center gap-2">
@@ -289,6 +316,7 @@ function MpesaConfigCard({ businessId, config, onSaved }) {
               Enabled
             </label>
           </div>
+          <p className="text-[11px] text-gray-400">Leave a secret field blank to keep its current saved value.</p>
           <div className="flex gap-2 pt-1">
             <button onClick={handleSave} disabled={saving}
               className="text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-50">
@@ -314,16 +342,30 @@ function EtimsConfigCard({ businessId, config, onSaved }) {
 
   useEffect(() => {
     if (config) {
-      setForm((f) => ({ ...f, provider: config.provider || 'generic-http', environment: config.environment || 'sandbox', enabled: !!config.enabled }));
+      setForm((f) => ({
+        ...f,
+        provider: config.provider || 'generic-http',
+        environment: config.environment || 'sandbox',
+        enabled: !!config.enabled,
+      }));
     }
   }, [config]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Same rule as M-Pesa: only send apiKey if the user actually typed
+      // one — an empty string would overwrite the real saved secret.
+      // apiUrl isn't secret (it's not select:false / encrypted like apiKey
+      // is expected to be), so it's always safe to send as typed.
+      const credentials = {
+        apiUrl: form.apiUrl,
+        ...(form.apiKey && { apiKey: form.apiKey }),
+      };
+
       await API.patch(`/superadmin/businesses/${businessId}/etims-config`, {
         provider: form.provider,
-        credentials: { apiUrl: form.apiUrl, apiKey: form.apiKey },
+        credentials,
         environment: form.environment,
         enabled: form.enabled,
       });
@@ -368,13 +410,13 @@ function EtimsConfigCard({ businessId, config, onSaved }) {
         </>
       ) : (
         <div className="space-y-2">
-          <input placeholder="Provider (e.g. generic-http)" value={form.provider}
+          <input placeholder="Provider (e.g. generic-http)" autoComplete="off" value={form.provider}
             onChange={(e) => setForm({ ...form, provider: e.target.value })}
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5" />
-          <input placeholder="API URL" value={form.apiUrl}
+          <input placeholder="API URL" autoComplete="off" value={form.apiUrl}
             onChange={(e) => setForm({ ...form, apiUrl: e.target.value })}
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5" />
-          <input placeholder="API Key" type="password" value={form.apiKey}
+          <input placeholder="API Key" type="password" autoComplete="new-password" value={form.apiKey}
             onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5" />
           <div className="flex items-center gap-2">
@@ -388,6 +430,7 @@ function EtimsConfigCard({ businessId, config, onSaved }) {
               Enabled
             </label>
           </div>
+          <p className="text-[11px] text-gray-400">Leave API Key blank to keep its current saved value.</p>
           <div className="flex gap-2 pt-1">
             <button onClick={handleSave} disabled={saving}
               className="text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-50">
